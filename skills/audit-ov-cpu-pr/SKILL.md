@@ -1,5 +1,7 @@
+---
 name: audit-ov-cpu-open-pullrequests
 description: This skill audits open pull requests in the OV CPU repository.
+---
 
 Repository: https://github.com/openvinotoolkit/openvino
 PR category: "CPU"

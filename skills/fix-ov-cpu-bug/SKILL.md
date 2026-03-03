@@ -1,5 +1,7 @@
+---
 name: fix-ov-cpu-bug
 description: Fixes the OV (OpenVINO) CPU bug by debugging the issue on the CPU platform and applying a patch to the affected files.
+---
 
 **Working environment**
 Need to understand the CPU platform, OpenVINO version and OS (Windows or Linux) to effectively debug and apply the fix.

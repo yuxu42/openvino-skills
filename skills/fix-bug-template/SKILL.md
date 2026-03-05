@@ -1,51 +1,85 @@
 ---
 name: fix-ov-crash-issue
-description: when running benchmmark_app of openvino with model, it crash with lastest OpenVINO master, but it works well in previous version. Please help to fix the issue.
+description: Fix a reproducible OpenVINO CPU crash in benchmark_app on latest master (works in older revisions).
 ---
 
-## OS and Version: Ubuntu 20.04
-Please be aware that you'r working on Linux OS, using Linus style file path, and using bash command line.
+## Environment
+- OS: Ubuntu 20.04
+- Shell: bash
+- Path style: Linux/Unix paths only (`/` and `~`)
 
 # Skill Instructions
+
 ## Build OpenVINO
-Build OpenVINO with the following command:
+Build OpenVINO with:
 
 ```bash
-cd ~/test/openvino/build_release
+cd /home/yxu28/projects/test/openvino/build_release
 cmake -DENABLE_INTEL_CPU=ON -DENABLE_INTEL_GPU=OFF -DENABLE_INTEL_GNA=OFF -DENABLE_TESTS=ON ..
-make --jobs=$(nproc --all)
+cmake --build . -- -j"$(nproc --all)"
 ```
 
 ## Source Code
-The source code is in the following path:
-~/test/openvino
+- `/home/yxu28/projects/test/openvino`
 
-## Models
-The models are in the following paths:
-~/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.xml
-~/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.bin
+## Model Paths
+- `/home/yxu28/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.xml`
+- `/home/yxu28/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.bin`
 
-
-## How to reproduce
-You can use the following command to run
+## Reproduce the Crash
+Run:
 
 ```bash
-benchmark_app -m ~/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.xml -t=5 -data_shape "[1,2] -d CPU
+/home/yxu28/projects/test/openvino/bin/intel64/Release/benchmark_app \
+  -m /home/yxu28/projects/test/tmp/TF_Separate_Bass_IR_v11_FP16_batch_1.xml \
+  -t=5 \
+  -data_shape "[1,2]" \
+  -d CPU
 ```
-you can find benchmark_app after you build OpenVINO. You can confirm whether it's can be reproduced or not. If it can be reproduced, please fix the issue.
 
-The error message is as follows:
-[ ERROR ] Fatal Python error: Fatal Python error: Floating point exception
+The typical failure signature is:
 
-## Summarize the root cause of the issue and confirm with user before you fix the issue.
+```text
+[ ERROR ] Fatal Python error: Floating point exception
+```
 
-## After confirm with user for the root cause, go on to fix
+The process may exit with code `136` (`SIGFPE`).
 
-## After you fix the issue, you can re-run the test:
+## Root Cause Workflow
+1. Reproduce the issue and collect logs/backtrace.
+2. Summarize the root cause.
+3. Confirm the root cause with the user before changing code.
+4. Implement the fix after user confirmation.
 
-## Single layer accuracy test
-You can use the following command to run the single layer accuracy test:
+## Root Cause (Current Finding)
+`SIGFPE` (exit `136`) comes from oneDNN reorder in TensorIterator back-edge handling when a dynamic-shape iteration produces zero-sized memory.
 
+Failing call path:
+- `BackEdgePortHelper::execute`
+- `src/plugins/intel_cpu/src/nodes/tensoriterator.cpp` (around lines 182-185)
+- `reorder.execute(...)` is called without checking empty memory descriptors.
+
+## Patch Reference
+```diff
+diff --git a/src/plugins/intel_cpu/src/nodes/tensoriterator.cpp b/src/plugins/intel_cpu/src/nodes/tensoriterator.cpp
+index 46d9922df8..e8f8ff9ef2 100644
+--- a/src/plugins/intel_cpu/src/nodes/tensoriterator.cpp
++++ b/src/plugins/intel_cpu/src/nodes/tensoriterator.cpp
+@@ -180,7 +180,7 @@ public:
+     }
+
+     void execute(const dnnl::stream& strm, int iter) override {
+-        if (iter != 0) {
++        if (iter != 0 && mem_holder_src.get_desc().get_size() != 0 && mem_holder_dst.get_desc().get_size() != 0) {
+             reorder.execute(strm, {{DNNL_ARG_FROM, mem_holder_src}, {DNNL_ARG_TO, mem_holder_dst}});
+         }
+     }
+```
+
+## Validation
+After applying the fix, re-run the reproduce command above and confirm there is no crash.
+
+## Single Layer Accuracy Test
 ```bash
 ov_cpu_func_tests
 ```

@@ -1,0 +1,33 @@
+*** Begin Patch
+*** Update File: cmake/dependencies.cmake
+@@
+-    if(WIN32 AND X86_64)
++    if(WIN32 AND X86_64)
++        set(_tbb_local_archive FALSE)
++        set(_tbb_archive_path "${TEMP}/download/oneapi-tbb-2021.13.1-win.zip")
++        if(EXISTS "${_tbb_archive_path}")
++            set(_tbb_local_archive TRUE)
++            if(DEFINED ENABLE_UNSAFE_LOCATIONS)
++                set(_tbb_previous_enable ${ENABLE_UNSAFE_LOCATIONS})
++            else()
++                set(_tbb_previous_enable "__UNDEFINED__")
++            endif()
++            set(ENABLE_UNSAFE_LOCATIONS TRUE)
++        endif()
+         # build oneTBB with Visual Studio 2019 (MSVC 14.21)
+         RESOLVE_DEPENDENCY(TBB
+                 ARCHIVE_WIN "oneapi-tbb-2021.13.1-win.zip"
+@@
+                 SHA256 "60d130cc34c3ad9643ed652e1ad03231d28e431917492e5baee07476f9de16b6"
+                 USE_NEW_LOCATION TRUE)
++        if(_tbb_local_archive)
++            if(_tbb_previous_enable STREQUAL "__UNDEFINED__")
++                unset(ENABLE_UNSAFE_LOCATIONS)
++            else()
++                set(ENABLE_UNSAFE_LOCATIONS ${_tbb_previous_enable})
++            endif()
++            unset(_tbb_previous_enable)
++            unset(_tbb_local_archive)
++        endif()
+     elseif(ANDROID AND X86_64)
+*** End Patch

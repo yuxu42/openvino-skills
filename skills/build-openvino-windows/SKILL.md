@@ -266,8 +266,134 @@ OpenVINO GenAI can also be built as an OpenVINO extra module with `OPENVINO_EXTR
 ## LLM bench reminder
 
 - Tool: `openvino.genai/tools/llm_bench`
-- Model path provided by user: `C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16`
+- Validated first Python benchmark model: `C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16`
+- Secondary debug model: `C:\Users\sas\models\qwen3_next_int4`
 - Save the `llm_bench` result when benchmark execution is requested.
+
+### Python environment validated for `benchmark.py`
+
+Install the `llm_bench` Python dependencies into `venv-ov` and prefer the pip packages for the Python benchmark path.
+
+Validated packages on this machine include:
+
+- `openvino`
+- `openvino-tokenizers`
+- `openvino_genai`
+- `torch`
+- `transformers==4.57.1`
+- `optimum-intel[nncf]`
+- `psutil`
+- `diffusers`
+- `tiktoken`
+- `jinja2`
+- `librosa`
+- `opencv-python`
+- `soundfile`
+- `scipy`
+- `matplotlib`
+
+Important: if `setupvars.ps1` was sourced earlier in the shell, `PYTHONPATH` may point at `openvino/install-vs/python` and `benchmark.py` may fail with `ImportError: DLL load failed while importing _pyopenvino`.
+
+Validated workaround before running `benchmark.py`:
+
+```powershell
+Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+```
+
+### Validated `benchmark.py` startup check
+
+```powershell
+Push-Location openvino.genai\tools\llm_bench
+Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py --help
+Pop-Location
+```
+
+### Validated `benchmark.py` run for DeepSeek model
+
+OpenVINO GenAI backend:
+
+```powershell
+Push-Location openvino.genai\tools\llm_bench
+Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py `
+  -m "C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16" `
+  -d CPU `
+  -f ov `
+  -t text_gen `
+  -p "Explain OpenVINO in one sentence." `
+  -n 1 `
+  -ic 20
+Pop-Location
+```
+
+Observed result on this machine:
+
+- Pipeline initialization time: `1.60s`
+- First token latency: `115.78 ms`
+- Other token latency: `58.80 ms/token`
+- Throughput: `17.01 tokens/s`
+
+Optimum backend:
+
+```powershell
+Push-Location openvino.genai\tools\llm_bench
+Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+$env:OMP_WAIT_POLICY = 'PASSIVE'
+& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py `
+  -m "C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16" `
+  -d CPU `
+  -f ov `
+  -t text_gen `
+  --optimum `
+  -p "Explain OpenVINO in one sentence." `
+  -n 1 `
+  -ic 20
+Pop-Location
+```
+
+Observed result on this machine:
+
+- From pretrained time: `0.69s`
+- First token latency: `197.34 ms`
+- Other token latency: `67.12 ms/token`
+- Throughput: `14.90 tokens/s`
+
+### Current `qwen3_next_int4` debug status for `benchmark.py`
+
+Model path:
+
+- `C:\Users\sas\models\qwen3_next_int4`
+
+Required tokenizer IR files were generated successfully:
+
+- `openvino_tokenizer.xml`
+- `openvino_detokenizer.xml`
+
+Current failures observed on this machine:
+
+- OpenVINO GenAI backend:
+  - `RuntimeError: Model references undeclared parameters: beam_idx`
+- Optimum backend:
+  - compile failure in `ConvertFullyConnectedToFullyConnectedCompressed`
+  - incompatible MatMul dimensions: `2048` vs `128`
+
+Relevant model metadata:
+
+- `architectures`: `Qwen3NextForCausalLM`
+- `model_type`: `qwen3_next`
+- `transformers_version`: `4.57.6`
+- `openvino_config.json` reports `optimum_version`: `2.1.0.dev0`
+
+Working assumption:
+
+- this exported `qwen3_next_int4` model is not yet compatible with the currently validated `llm_bench` runtime path on this machine.
+
+Next debug direction:
+
+1. re-export the model with the same `openvino` and `optimum-intel` stack used for benchmarking on this machine
+2. compare against a non-INT4 or non-compressed export of the same model
+3. if needed, move to a newer Optimum/OpenVINO nightly that matches `optimum_version: 2.1.0.dev0`
 
 ## Current status observed on this machine
 
@@ -281,3 +407,7 @@ OpenVINO GenAI can also be built as an OpenVINO extra module with `OPENVINO_EXTR
 - Verified LLM IR model path is `C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16`.
 - Verified benchmark result shows better steady-state throughput on GPU than CPU for this model, but higher GPU load time.
 - `tbb12.dll` from `C:\Program Files (x86)\Intel\oneAPI\tbb\latest\bin` must be available on `PATH` for the validated C++ GenAI applications.
+- `benchmark.py --help` is validated after clearing `PYTHONPATH` in the shell.
+- `benchmark.py` is validated for the DeepSeek model with both the default OpenVINO GenAI backend and the `--optimum` backend on CPU.
+- `transformers==4.57.1` is the validated version for the current Python benchmark path on this machine.
+- `C:\Users\sas\models\qwen3_next_int4` is still under debug; current failures are `beam_idx` on the GenAI backend and compressed MatMul shape mismatch on the Optimum backend.

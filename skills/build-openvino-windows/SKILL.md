@@ -272,7 +272,7 @@ OpenVINO GenAI can also be built as an OpenVINO extra module with `OPENVINO_EXTR
 
 ### Python environment validated for `benchmark.py`
 
-Install the `llm_bench` Python dependencies into `venv-ov` and prefer the pip packages for the Python benchmark path.
+Install the `llm_bench` Python dependencies into `venv-ov`, but make the locally built OpenVINO from `openvino/install-vs` the default configuration for all `benchmark.py` runs in this workspace.
 
 Validated packages on this machine include:
 
@@ -292,21 +292,46 @@ Validated packages on this machine include:
 - `scipy`
 - `matplotlib`
 
-Important: if `setupvars.ps1` was sourced earlier in the shell, `PYTHONPATH` may point at `openvino/install-vs/python` and `benchmark.py` may fail with `ImportError: DLL load failed while importing _pyopenvino`.
+Default rule for this skill:
 
-Validated workaround before running `benchmark.py`:
+- do **not** use plain `python .\benchmark.py ...` as the default path
+- plain `python .\benchmark.py ...` in `venv-ov` imports `openvino` from `venv-ov\Lib\site-packages`
+- for workspace validation, `benchmark.py` should default to the locally built OpenVINO under `openvino/install-vs`
+
+Validated local build identity check:
 
 ```powershell
-Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+& .\venv-ov\Scripts\Activate.ps1
+python -c "import os,sys; os.add_dll_directory(r'C:\Users\sas\yxu28\openvino\install-vs\runtime\bin\intel64\Release'); os.add_dll_directory(r'C:\Program Files (x86)\Intel\oneAPI\tbb\latest\bin'); sys.path.insert(0, r'C:\Users\sas\yxu28\openvino\install-vs\python'); sys.path.insert(1, r'C:\Users\sas\yxu28\openvino\install-vs\python\python3'); import openvino; print(openvino.__file__); print(openvino.__version__)"
+```
+
+Observed local build version on this machine:
+
+- `C:\Users\sas\yxu28\openvino\install-vs\python\openvino\__init__.py`
+- `2026.2.0-21387-f958066663e`
+
+### Default helper for `benchmark.py`
+
+Use this helper function first in PowerShell from `C:\Users\sas\yxu28`:
+
+```powershell
+function Invoke-OVLLMBenchLocal {
+  param([string[]]$BenchArgs)
+
+  & .\venv-ov\Scripts\Activate.ps1
+  Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
+  $env:OV_BENCH_ARGS = $BenchArgs | ConvertTo-Json -Compress
+
+  python -c "import json, os, runpy, sys; runtime_bin=r'C:\Users\sas\yxu28\openvino\install-vs\runtime\bin\intel64\Release'; tbb_bin=r'C:\Program Files (x86)\Intel\oneAPI\tbb\latest\bin'; py_ov=r'C:\Users\sas\yxu28\openvino\install-vs\python'; py_ov3=r'C:\Users\sas\yxu28\openvino\install-vs\python\python3'; os.add_dll_directory(runtime_bin); os.add_dll_directory(tbb_bin); os.environ['OPENVINO_LIB_PATHS']=runtime_bin; os.environ['PATH']=runtime_bin+';'+tbb_bin+';'+os.environ['PATH']; os.environ['OMP_WAIT_POLICY']='PASSIVE'; sys.path.insert(0, py_ov); sys.path.insert(1, py_ov3); os.chdir(r'C:\Users\sas\yxu28\openvino.genai\tools\llm_bench'); sys.argv=['benchmark.py'] + json.loads(os.environ['OV_BENCH_ARGS']); runpy.run_path('benchmark.py', run_name='__main__')"
+
+  Remove-Item Env:OV_BENCH_ARGS -ErrorAction SilentlyContinue
+}
 ```
 
 ### Validated `benchmark.py` startup check
 
 ```powershell
-Push-Location openvino.genai\tools\llm_bench
-Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
-& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py --help
-Pop-Location
+Invoke-OVLLMBenchLocal @('--help')
 ```
 
 ### Validated `benchmark.py` run for DeepSeek model
@@ -314,17 +339,15 @@ Pop-Location
 OpenVINO GenAI backend:
 
 ```powershell
-Push-Location openvino.genai\tools\llm_bench
-Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
-& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py `
-  -m "C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16" `
-  -d CPU `
-  -f ov `
-  -t text_gen `
-  -p "Explain OpenVINO in one sentence." `
-  -n 1 `
-  -ic 20
-Pop-Location
+Invoke-OVLLMBenchLocal @(
+  '-m', 'C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16',
+  '-d', 'CPU',
+  '-f', 'ov',
+  '-t', 'text_gen',
+  '-p', 'Explain OpenVINO in one sentence.',
+  '-n', '1',
+  '-ic', '20'
+)
 ```
 
 Observed result on this machine:
@@ -337,19 +360,16 @@ Observed result on this machine:
 Optimum backend:
 
 ```powershell
-Push-Location openvino.genai\tools\llm_bench
-Remove-Item Env:PYTHONPATH -ErrorAction SilentlyContinue
-$env:OMP_WAIT_POLICY = 'PASSIVE'
-& ..\..\..\venv-ov\Scripts\python.exe .\benchmark.py `
-  -m "C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16" `
-  -d CPU `
-  -f ov `
-  -t text_gen `
-  --optimum `
-  -p "Explain OpenVINO in one sentence." `
-  -n 1 `
-  -ic 20
-Pop-Location
+Invoke-OVLLMBenchLocal @(
+  '-m', 'C:\Users\sas\models\deepseek-r1-distill-qwen-1.5b\FP16',
+  '-d', 'CPU',
+  '-f', 'ov',
+  '-t', 'text_gen',
+  '--optimum',
+  '-p', 'Explain OpenVINO in one sentence.',
+  '-n', '1',
+  '-ic', '20'
+)
 ```
 
 Observed result on this machine:

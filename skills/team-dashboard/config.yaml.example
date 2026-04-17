@@ -1,0 +1,75 @@
+# Team Dashboard Configuration
+
+# Team Members
+team_members:
+  - name: "Chen Xu"
+    github_username: "xuchen-intel"
+    jira_username: "xuchen"
+  - name: "Xiuchuan Zhai"
+    github_username: "azhai219"
+    jira_username: "xiuchuan"
+  - name: "Zhang Yi"
+    github_username: "zhangYiIntel"
+    jira_username: "zhangyi7"
+  - name: "Chenhu Wang"
+    github_username: "chenhu-wang"
+    jira_username: "chenhuwa"
+  - name: "Cecilia Peng"
+    github_username: "ceciliapeng2011"
+    jira_username: "yxu28"
+  - name: "Bo Liu"
+    github_username: "liubo-intel"
+    jira_username: "liubo2"
+  - name: "Yuan Hu"
+    github_username: "tiger100256-hu"
+    jira_username: "yuanhu1"
+  - name: "Mang Guo"
+    github_username: "mangguo321"
+    jira_username: "mangguo"
+
+# GitHub Configuration
+github:
+  token: "${GITHUB_TOKEN}"  # Set via environment variable
+  repositories:
+    - "openvinotoolkit/openvino"
+
+# JIRA Configuration
+jira:
+  url: "https://jira.devtools.intel.com"
+  email: "${JIRA_EMAIL}"
+  api_token: "${JIRA_API_TOKEN}"
+  project_keys:
+    - "CVS"
+
+# Features Tracking
+features:
+  # Define features being worked on
+  current_sprint:
+    - name: "Feature 1"
+      lead: "username1"
+      status: "In Progress"
+    - name: "Feature 2"
+      lead: "username2"
+      status: "Planning"
+
+# Model Support Tracking
+models:
+  # Track new models being integrated
+  tracking_file: "models.json"
+
+# Customer Engagement
+customer_engagement:
+  # Configure customer issue tracking
+  platforms:
+    - type: "github_issues"
+      repos: ["org/repo1"]
+    - type: "zendesk"
+      enabled: false
+    - type: "slack"
+      enabled: false
+
+# Report Configuration
+report:
+  output_dir: "reports"
+  week_start_day: "monday"  # or "sunday"
+  default_format: "html"  # html, markdown, or both

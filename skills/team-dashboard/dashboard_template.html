@@ -336,7 +336,7 @@
             <div class="summary-stats">
                 <div class="stat-item">
                     <div class="stat-number">{{ pr_metrics.total_submitted }}</div>
-                    <div class="stat-label">PRs Submitted</div>
+                    <div class="stat-label">PRs Open (In Review)</div>
                 </div>
                 <div class="stat-item">
                     <div class="stat-number">{{ pr_metrics.total_merged }}</div>
@@ -362,7 +362,7 @@
                 <div class="metrics-grid">
                     <div class="metric-card">
                         <div class="metric-value">{{ pr_metrics.total_submitted }}</div>
-                        <div class="metric-label">Total PRs Submitted</div>
+                        <div class="metric-label">PRs Open (In Review)</div>
                     </div>
                     <div class="metric-card">
                         <div class="metric-value">{{ pr_metrics.total_merged }}</div>
@@ -371,7 +371,7 @@
                 </div>
 
                 {% if pr_metrics.submitted %}
-                <h3 style="margin: 30px 0 20px 0; color: #2d3748;">PRs Submitted by Team Member</h3>
+                <h3 style="margin: 30px 0 20px 0; color: #2d3748;">PRs Open (In Review) by Team Member</h3>
                 {% for member, prs in pr_metrics.submitted.items() %}
                 <div class="member-section">
                     <div class="member-name">

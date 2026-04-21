@@ -127,22 +127,18 @@ class DashboardGenerator:
             try:
                 repo = self.github_client.get_repo(repo_name)
 
-                # Get PRs created during the week (for submitted count)
-                prs_created = repo.get_pulls(state='all', sort='created', direction='desc')
-                for pr in prs_created:
-                    if pr.created_at < self.week_start:
-                        break
-
-                    if pr.created_at >= self.week_start and pr.created_at < self.week_end:
-                        author = pr.user.login
-                        if author in team_usernames:
-                            metrics["submitted"][author].append({
-                                "title": pr.title,
-                                "number": pr.number,
-                                "url": pr.html_url,
-                                "repo": repo_name
-                            })
-                            metrics["total_submitted"] += 1
+                # Get all currently open PRs by team members
+                prs_open = repo.get_pulls(state='open', sort='created', direction='desc')
+                for pr in prs_open:
+                    author = pr.user.login
+                    if author in team_usernames:
+                        metrics["submitted"][author].append({
+                            "title": pr.title,
+                            "number": pr.number,
+                            "url": pr.html_url,
+                            "repo": repo_name
+                        })
+                        metrics["total_submitted"] += 1
 
                 # Get PRs updated recently to check for merges during the week
                 # This catches PRs created before the week but merged during it
@@ -213,7 +209,7 @@ class DashboardGenerator:
 
         for project_key in project_keys:
             try:
-                team_filter = ', '.join(team_usernames)
+                team_filter = ', '.join(f'"{u}"' for u in team_usernames)
 
                 # Query for tickets updated during the week
                 days_back = (datetime.now() - self.week_start.replace(tzinfo=None)).days + 1
@@ -349,7 +345,7 @@ class DashboardGenerator:
 
         for project_key in project_keys:
             try:
-                team_filter = ', '.join(team_usernames)
+                team_filter = ', '.join(f'"{u}"' for u in team_usernames)
 
                 # Query for Story and Epic tickets in progress
                 jql = f'project = {project_key} AND assignee in ({team_filter}) AND type in (Story, Epic) AND status in ("In Progress", "In Review", "In Development")'

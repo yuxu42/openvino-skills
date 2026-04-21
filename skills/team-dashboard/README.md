@@ -4,7 +4,7 @@ Generate comprehensive weekly team dashboards combining GitHub PRs, JIRA tickets
 
 ## Features
 
-- ✅ **GitHub PR Tracking**: Submitted and merged PRs with accurate date filtering
+- ✅ **GitHub PR Tracking**: All open PRs (in review) and merged PRs this week
 - ✅ **JIRA Ticket Tracking**: Bugs vs Features, Completed vs In Progress
 - ✅ **GPU/CPU Features**: Component-based categorization (IE GPU Plugin / IE CPU Plugin)
 - ✅ **Customer Engagement**: GitHub issues responded to and closed

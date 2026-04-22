@@ -648,6 +648,43 @@
                 {% endfor %}
                 {% endif %}
             </div>
+
+            <!-- Weekly Summaries Section -->
+            {% if weekly_summaries %}
+            <div class="section">
+                <div class="section-header">
+                    <span class="section-icon">📋</span>
+                    <h2 class="section-title">Weekly Summaries from Team</h2>
+                </div>
+
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(400px, 1fr)); gap: 20px;">
+                {% for summary in weekly_summaries %}
+                <div style="background: #f7fafc; border-radius: 12px; padding: 20px; border-top: 4px solid {% if summary.no_report %}#cbd5e0{% else %}#667eea{% endif %}; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                    <div style="display: flex; align-items: center; margin-bottom: 12px;">
+                        <div style="width: 40px; height: 40px; border-radius: 50%; background: {% if summary.no_report %}#cbd5e0{% else %}linear-gradient(135deg, #667eea, #764ba2){% endif %}; color: white; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.1em; margin-right: 12px;">{{ summary.name[0] }}</div>
+                        <div>
+                            <div style="font-size: 1.15em; font-weight: 600; color: #2d3748;">{{ summary.name }}</div>
+                        </div>
+                        {% if summary.on_leave %}
+                        <span class="status-badge planning" style="margin-left: auto;">On Leave</span>
+                        {% elif summary.no_report %}
+                        <span class="status-badge planning" style="margin-left: auto;">No Report</span>
+                        {% endif %}
+                    </div>
+                    {% if summary.entries %}
+                    <div style="font-size: 0.9em; color: #4a5568; line-height: 1.7;">
+                        {% for item in summary.entries %}
+                        <div style="padding: 4px 0; {% if not loop.last %}border-bottom: 1px solid #e2e8f0;{% endif %}">{{ item }}</div>
+                        {% endfor %}
+                    </div>
+                    {% elif summary.note %}
+                    <div style="color: #a0aec0; font-style: italic; font-size: 0.9em;">{{ summary.note }}</div>
+                    {% endif %}
+                </div>
+                {% endfor %}
+                </div>
+            </div>
+            {% endif %}
         </div>
 
         <div class="footer">

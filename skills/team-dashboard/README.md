@@ -7,6 +7,7 @@ Generate comprehensive weekly team dashboards combining GitHub PRs, JIRA tickets
 - ✅ **GitHub PR Tracking**: All open PRs (in review) and merged PRs this week
 - ✅ **JIRA Ticket Tracking**: Bugs vs Features, Completed vs In Progress
 - ✅ **GPU/CPU Features**: Component-based categorization (IE GPU Plugin / IE CPU Plugin)
+- ✅ **Weekly Summaries**: Auto-reads team weekly report emails from Outlook (Windows)
 - ✅ **Customer Engagement**: GitHub issues responded to and closed
 - ✅ **Intel JIRA Integration**: Bearer token authentication with SSO support
 - ✅ **Corporate Proxy**: Intel network proxy support

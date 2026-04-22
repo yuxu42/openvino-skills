@@ -5,9 +5,11 @@ team_members:
   - name: "Chen Xu"
     github_username: "xuchen-intel"
     jira_username: "xuchen"
+    email: "chen.xu@intel.com"  # optional, for Outlook weekly summary reading
   - name: "Xiuchuan Zhai"
     github_username: "azhai219"
     jira_username: "xiuchuan"
+    email: "xiuchuan.zhai@intel.com"
   - name: "Zhang Yi"
     github_username: "zhangYiIntel"
     jira_username: "zhangyi7"

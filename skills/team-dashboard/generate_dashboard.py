@@ -490,6 +490,113 @@ class DashboardGenerator:
 
         return engagement
 
+    def get_weekly_summaries(self):
+        """Read weekly summary emails from Outlook via COM automation"""
+        try:
+            import win32com.client
+        except ImportError:
+            print("[X] pywin32 not installed, skipping weekly summaries")
+            return []
+
+        team_members = self.config.get('team_members', [])
+        email_to_name = {}
+        for m in team_members:
+            if m.get('email'):
+                email_to_name[m['email'].lower()] = m['name']
+
+        if not email_to_name:
+            print("[X] No team member emails configured, skipping weekly summaries")
+            return []
+
+        try:
+            outlook = win32com.client.Dispatch('Outlook.Application')
+            mapi = outlook.GetNamespace('MAPI')
+            inbox = mapi.GetDefaultFolder(6)
+        except Exception as e:
+            print(f"[X] Cannot connect to Outlook: {e}")
+            return []
+
+        items = inbox.Items
+        items.Sort('[ReceivedTime]', True)
+
+        weekly_keywords = ['weekly update', 'weekly summary', 'weekly report']
+        found_emails = {}
+        search_cutoff = self.week_start.replace(tzinfo=None) - timedelta(days=7)
+
+        for i in range(min(500, items.Count)):
+            msg = items[i + 1]
+            try:
+                recv_time = msg.ReceivedTime.replace(tzinfo=None)
+                if recv_time < search_cutoff:
+                    break
+
+                sender_addr = ''
+                try:
+                    if msg.SenderEmailType == 'EX':
+                        exuser = msg.Sender.GetExchangeUser()
+                        if exuser:
+                            sender_addr = exuser.PrimarySmtpAddress.lower()
+                    else:
+                        sender_addr = msg.SenderEmailAddress.lower()
+                except Exception:
+                    continue
+
+                if sender_addr not in email_to_name:
+                    continue
+
+                subject_lower = msg.Subject.lower()
+                if not any(kw in subject_lower for kw in weekly_keywords):
+                    continue
+
+                if sender_addr not in found_emails or recv_time > found_emails[sender_addr]['date']:
+                    found_emails[sender_addr] = {
+                        'name': email_to_name[sender_addr],
+                        'date': recv_time,
+                        'body': msg.Body
+                    }
+            except Exception:
+                continue
+
+        summaries = []
+        for member in team_members:
+            email = member.get('email', '').lower()
+            name = member['name']
+
+            if email in found_emails:
+                raw = found_emails[email]['body']
+                lines = [l.strip() for l in raw.splitlines() if l.strip()]
+                content_lines = []
+                for line in lines:
+                    if line.lower().startswith(('hi ', 'hi,', 'dear ', 'hello', 'regards', 'thanks', 'thank you', 'best ')):
+                        continue
+                    if line.lower().startswith('here is my'):
+                        continue
+                    if line.lower().startswith('this is my'):
+                        continue
+                    if '@' in line and len(line) < 40:
+                        continue
+                    if content_lines or (len(line) > 5):
+                        content_lines.append(line)
+
+                summaries.append({
+                    'name': name,
+                    'entries': content_lines[:15],
+                    'on_leave': False,
+                    'no_report': False,
+                    'note': ''
+                })
+            else:
+                summaries.append({
+                    'name': name,
+                    'entries': [],
+                    'on_leave': False,
+                    'no_report': True,
+                    'note': 'No weekly report received.'
+                })
+
+        print(f"[OK] Processed weekly summaries ({len(found_emails)} reports found from Outlook)")
+        return summaries
+
     def generate_report(self, output_format='html'):
         """Generate the complete dashboard report"""
         print(f"\n[DASHBOARD] Generating dashboard for week {self.week_start.strftime('%Y-%m-%d')} to {self.week_end.strftime('%Y-%m-%d')}\n")
@@ -500,6 +607,7 @@ class DashboardGenerator:
         features = self.get_key_features()
         model_support = self.get_model_support()
         customer_engagement = self.get_customer_engagement()
+        weekly_summaries = self.get_weekly_summaries()
 
         # Save report
         output_dir = Path(self.config['report'].get('output_dir', 'reports'))
@@ -509,7 +617,7 @@ class DashboardGenerator:
 
         # Generate HTML report (default)
         if output_format in ['html', 'both']:
-            html_report = self.format_html_report(pr_metrics, jira_metrics, features, model_support, customer_engagement)
+            html_report = self.format_html_report(pr_metrics, jira_metrics, features, model_support, customer_engagement, weekly_summaries)
             html_filename = f"weekly_dashboard_{self.week_start.strftime('%Y-%m-%d')}.html"
             html_path = output_dir / html_filename
             with open(html_path, 'w', encoding='utf-8') as f:
@@ -648,7 +756,7 @@ class DashboardGenerator:
 
         return '\n'.join(report)
 
-    def format_html_report(self, pr_metrics, jira_metrics, features, model_support, customer_engagement):
+    def format_html_report(self, pr_metrics, jira_metrics, features, model_support, customer_engagement, weekly_summaries=None):
         """Format the dashboard report as HTML"""
         # Load HTML template
         template_path = Path(__file__).parent / 'dashboard_template.html'
@@ -671,7 +779,8 @@ class DashboardGenerator:
             'jira_metrics': jira_metrics,
             'features': features,
             'model_support': model_support,
-            'customer_engagement': customer_engagement
+            'customer_engagement': customer_engagement,
+            'weekly_summaries': weekly_summaries or []
         }
 
         # Render template

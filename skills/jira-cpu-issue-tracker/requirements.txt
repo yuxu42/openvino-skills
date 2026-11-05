@@ -1,0 +1,2 @@
+# No external dependencies — uses Python stdlib only (urllib, json, collections, datetime, pathlib)
+# Python 3.8+ required

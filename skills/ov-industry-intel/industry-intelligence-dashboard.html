@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>OpenVINO Industry Intelligence · WW45 2026</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: #0f1117; color: #e2e8f0; min-height: 100vh; padding: 32px 24px;
+        }
+        .container { max-width: 1400px; margin: 0 auto; }
+
+        /* Header */
+        header { margin-bottom: 32px; }
+        .header-top { display: flex; align-items: flex-start; justify-content: space-between; flex-wrap: wrap; gap: 12px; }
+        h1 { font-size: 1.9rem; font-weight: 700; color: #f8fafc; letter-spacing: -0.5px; }
+        h1 span { color: #818cf8; }
+        .period-badge {
+            display: inline-flex; align-items: center; gap: 6px;
+            background: #13111f; border: 1px solid #3730a3;
+            color: #c7d2fe; padding: 6px 14px; border-radius: 20px; font-size: 0.82rem; font-weight: 500;
+        }
+        .period-badge::before { content: ''; width: 7px; height: 7px; border-radius: 50%; background: #818cf8; display: inline-block; animation: pulse 2s infinite; }
+        @keyframes pulse { 0%,100%{opacity:1} 50%{opacity:.4} }
+        .subtitle { color: #94a3b8; font-size: 0.88rem; margin-top: 6px; }
+        .edit-hint {
+            margin-top: 10px; display: inline-flex; align-items: center; gap: 6px;
+            background: rgba(251,191,36,.08); border: 1px solid rgba(251,191,36,.2);
+            color: #fbbf24; padding: 4px 12px; border-radius: 6px; font-size: 0.75rem;
+        }
+
+        /* KPI Cards */
+        .kpi-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 16px; margin-bottom: 28px; }
+        @media(max-width:900px){ .kpi-grid { grid-template-columns: repeat(2, 1fr); } }
+        .kpi-card { background: #1e2130; border: 1px solid #2d3348; border-radius: 12px; padding: 20px 22px; }
+        .kpi-card .label { font-size: .72rem; color: #64748b; text-transform: uppercase; letter-spacing: .8px; font-weight: 600; margin-bottom: 10px; }
+        .kpi-card .value { font-size: 2.4rem; font-weight: 700; line-height: 1; }
+        .kpi-card .sub { font-size: .76rem; color: #64748b; margin-top: 6px; }
+        .c-purple { color: #818cf8; } .c-green { color: #34d399; } .c-blue { color: #60a5fa; }
+        .c-amber { color: #fbbf24; } .c-red { color: #f87171; }
+
+        /* Section headers */
+        .section-divider { display: flex; align-items: center; gap: 14px; margin: 32px 0 18px; }
+        .section-divider h2 { font-size: 1rem; font-weight: 700; color: #f8fafc; white-space: nowrap; }
+        .section-divider h2 span { color: #818cf8; }
+        .section-divider hr { flex: 1; border: none; border-top: 1px solid #2d3348; }
+        .section-meta { font-size: .74rem; color: #475569; white-space: nowrap; }
+
+        /* Panels */
+        .panel { background: #1e2130; border: 1px solid #2d3348; border-radius: 12px; padding: 22px; margin-bottom: 20px; }
+        .panel-title { font-size: .72rem; font-weight: 700; text-transform: uppercase; letter-spacing: .8px; color: #64748b; margin-bottom: 16px; }
+
+        /* Two column */
+        .two-col { display: grid; grid-template-columns: 1fr 1fr; gap: 20px; margin-bottom: 20px; }
+        @media(max-width:900px){ .two-col { grid-template-columns: 1fr; } }
+
+        /* Status badges */
+        .badge { display: inline-block; padding: 2px 8px; border-radius: 8px; font-size: .68rem; font-weight: 600; white-space: nowrap; }
+        .badge-green  { background: rgba(52,211,153,.12);  color: #34d399; }
+        .badge-amber  { background: rgba(251,191,36,.12);  color: #fbbf24; }
+        .badge-blue   { background: rgba(96,165,250,.12);  color: #60a5fa; }
+        .badge-red    { background: rgba(248,113,113,.12); color: #f87171; }
+        .badge-gray   { background: rgba(100,116,139,.12); color: #64748b; }
+        .badge-purple { background: rgba(129,140,248,.12); color: #818cf8; }
+
+        /* Priority badges */
+        .prio { display: inline-block; padding: 1px 7px; border-radius: 6px; font-size: .68rem; font-weight: 700; }
+        .prio-p1 { background: rgba(248,113,113,.15); color: #f87171; }
+        .prio-p2 { background: rgba(251,191,36,.15);  color: #fbbf24; }
+        .prio-p3 { background: rgba(96,165,250,.15);  color: #60a5fa; }
+
+        /* Table */
+        .data-table { width: 100%; border-collapse: collapse; }
+        .data-table th {
+            font-size: .68rem; font-weight: 600; text-transform: uppercase; letter-spacing: .7px;
+            color: #475569; padding: 0 10px 10px; text-align: left; border-bottom: 1px solid #2d3348;
+        }
+        .data-table td {
+            padding: 10px 10px; border-bottom: 1px solid #161b27;
+            font-size: .82rem; color: #cbd5e1; vertical-align: top;
+        }
+        .data-table tr:last-child td { border-bottom: none; }
+        .data-table tr:hover td { background: rgba(255,255,255,.02); }
+        .model-name { font-weight: 600; color: #e2e8f0; }
+        .model-maker { font-size: .72rem; color: #64748b; margin-top: 2px; }
+        .notes-text { font-size: .76rem; color: #94a3b8; line-height: 1.4; }
+
+        /* Framework rows */
+        .fw-row { display: flex; gap: 10px; align-items: flex-start; padding: 11px 0; border-bottom: 1px solid #161b27; }
+        .fw-row:last-child { border-bottom: none; }
+        .fw-icon { width: 32px; height: 32px; border-radius: 8px; display: flex; align-items: center; justify-content: center; font-size: .72rem; font-weight: 700; flex-shrink: 0; }
+        .fw-name { font-size: .85rem; font-weight: 600; color: #e2e8f0; }
+        .fw-version { font-size: .72rem; color: #475569; margin-top: 1px; }
+        .fw-change { font-size: .76rem; color: #94a3b8; margin-top: 4px; line-height: 1.4; }
+
+        /* Gap tracker */
+        .gap-row { padding: 12px 0; border-bottom: 1px solid #161b27; }
+        .gap-row:last-child { border-bottom: none; }
+        .gap-row-top { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-bottom: 4px; }
+        .gap-title { font-size: .88rem; font-weight: 600; color: #e2e8f0; }
+        .gap-detail { font-size: .78rem; color: #94a3b8; line-height: 1.5; }
+        .impact-high { color: #f87171; font-size: .72rem; font-weight: 600; }
+        .impact-med  { color: #fbbf24; font-size: .72rem; font-weight: 600; }
+        .impact-low  { color: #60a5fa; font-size: .72rem; font-weight: 600; }
+
+        /* Action items */
+        .action-item { display: flex; align-items: flex-start; gap: 10px; padding: 10px 0; border-bottom: 1px solid #161b27; }
+        .action-item:last-child { border-bottom: none; }
+        .action-check {
+            width: 18px; height: 18px; border: 2px solid #2d3348; border-radius: 4px;
+            flex-shrink: 0; cursor: pointer; display: flex; align-items: center; justify-content: center;
+            margin-top: 2px; transition: all .15s;
+        }
+        .action-check:hover { border-color: #818cf8; }
+        .action-check.done { background: rgba(52,211,153,.2); border-color: #34d399; }
+        .action-check.done::after { content: '✓'; font-size: .7rem; color: #34d399; }
+        .action-text { flex: 1; font-size: .84rem; color: #cbd5e1; line-height: 1.4; }
+        .action-text.done-text { color: #475569; text-decoration: line-through; }
+        .action-meta { display: flex; gap: 8px; margin-top: 3px; align-items: center; }
+        .action-owner { font-size: .72rem; color: #64748b; }
+        .action-due { font-size: .72rem; background: rgba(129,140,248,.1); color: #818cf8; padding: 1px 7px; border-radius: 5px; }
+        .add-action-btn {
+            margin-top: 14px; padding: 7px 16px;
+            background: rgba(129,140,248,.08); border: 1px dashed rgba(129,140,248,.3);
+            border-radius: 8px; color: #818cf8; font-size: .8rem; cursor: pointer;
+            width: 100%; text-align: center; transition: all .2s;
+        }
+        .add-action-btn:hover { background: rgba(129,140,248,.18); }
+        .action-remove { cursor: pointer; color: #334155; font-size: .8rem; padding: 0 4px; flex-shrink: 0; transition: color .15s; }
+        .action-remove:hover { color: #f87171; }
+
+        /* Notes */
+        .notes-area {
+            width: 100%; background: #161b27; border: 1px solid #2d3348; border-radius: 8px;
+            color: #94a3b8; font-size: .83rem; font-family: inherit; line-height: 1.6;
+            padding: 12px; resize: vertical; min-height: 90px; margin-top: 4px;
+        }
+        .notes-area:focus { outline: none; border-color: #818cf8; }
+
+        footer { text-align: center; color: #334155; font-size: .76rem; margin-top: 40px; padding-top: 20px; border-top: 1px solid #1e2130; }
+
+        /* Architecture Tech Analysis */
+        .arch-card { background:#1e2130; border:1px solid #2d3348; border-radius:12px; padding:20px 22px; margin-bottom:14px; border-left:4px solid #2d3348; }
+        .arch-card.sev-critical     { border-left-color:#f87171; }
+        .arch-card.sev-partial      { border-left-color:#fbbf24; }
+        .arch-card.sev-optimization { border-left-color:#60a5fa; }
+        .arch-header { display:flex; align-items:flex-start; justify-content:space-between; gap:10px; flex-wrap:wrap; margin-bottom:8px; }
+        .arch-name { font-size:.95rem; font-weight:700; color:#f8fafc; }
+        .arch-models-row { display:flex; flex-wrap:wrap; gap:10px; margin-bottom:10px; }
+        .arch-model-chip { font-size:.72rem; color:#94a3b8; }
+        .arch-model-chip .vram-chip { background:rgba(129,140,248,.1); color:#818cf8; padding:1px 7px; border-radius:5px; margin-left:4px; }
+        .arch-mech { font-size:.80rem; color:#94a3b8; line-height:1.6; margin-bottom:12px; padding-bottom:12px; border-bottom:1px solid #2d3348; }
+        .arch-gaps-title { font-size:.68rem; font-weight:700; text-transform:uppercase; letter-spacing:.7px; color:#475569; margin-bottom:8px; }
+        .arch-gap-item { display:flex; gap:8px; margin-bottom:6px; font-size:.78rem; color:#cbd5e1; line-height:1.45; }
+        .arch-gap-bullet { flex-shrink:0; margin-top:1px; }
+        .sev-critical     .arch-gap-bullet { color:#f87171; }
+        .sev-partial      .arch-gap-bullet { color:#fbbf24; }
+        .sev-optimization .arch-gap-bullet { color:#60a5fa; }
+        .arch-status-row { display:flex; align-items:center; gap:8px; margin-top:12px; padding-top:10px; border-top:1px solid #2d3348; }
+        .arch-status-label { font-size:.70rem; color:#475569; }
+        .ov-cannot     { background:rgba(248,113,113,.12); color:#f87171; padding:2px 10px; border-radius:8px; font-size:.72rem; font-weight:600; }
+        .ov-partial-s  { background:rgba(251,191,36,.12);  color:#fbbf24; padding:2px 10px; border-radius:8px; font-size:.72rem; font-weight:600; }
+        .ov-optim      { background:rgba(96,165,250,.12);  color:#60a5fa; padding:2px 10px; border-radius:8px; font-size:.72rem; font-weight:600; }
+    </style>
+</head>
+<body>
+<div class="container">
+
+    <header>
+        <div class="header-top">
+            <div>
+                <h1>OpenVINO <span>Industry Intelligence</span></h1>
+                <p class="subtitle">Weekly tracker · Inference ecosystem · Emerging models · Agent frameworks · Gap analysis</p>
+                <div class="edit-hint">&#9998; Update weekly: edit the DATA SECTION at the top of &lt;script&gt; in this file</div>
+            </div>
+            <div class="period-badge" id="periodBadge"></div>
+        </div>
+    </header>
+
+    <!-- KPI summary -->
+    <div class="kpi-grid" id="kpiGrid"></div>
+
+    <!-- Trending Models -->
+    <div class="section-divider">
+        <h2>&#128293; Trending <span>Models</span></h2>
+        <hr>
+        <span class="section-meta">P1 = must support · P2 = important · P3 = track</span>
+    </div>
+    <div class="panel">
+        <table class="data-table">
+            <thead>
+                <tr>
+                    <th>Model</th>
+                    <th>Type</th>
+                    <th>Size</th>
+                    <th>Modality</th>
+                    <th>OpenVINO Status</th>
+                    <th>Priority</th>
+                    <th>Notes</th>
+                </tr>
+            </thead>
+            <tbody id="modelsTbody"></tbody>
+        </table>
+    </div>
+
+    <!-- Two column: Frameworks + Agents -->
+    <div class="two-col">
+        <div class="panel">
+            <div class="panel-title">&#9889; Inference Framework Activity</div>
+            <div id="frameworkList"></div>
+        </div>
+        <div class="panel">
+            <div class="panel-title">&#129302; Agent Ecosystem</div>
+            <div id="agentList"></div>
+        </div>
+    </div>
+
+    <!-- Gap Tracker -->
+    <div class="section-divider">
+        <h2>&#127919; OpenVINO <span>Gap Tracker</span></h2>
+        <hr>
+        <span class="section-meta">features missing or lagging vs. competitors</span>
+    </div>
+    <div class="panel">
+        <div id="gapList"></div>
+    </div>
+
+    <!-- Architecture Tech Analysis -->
+    <div class="section-divider">
+        <h2>&#128300; New Architecture <span>Tech Analysis</span></h2>
+        <hr>
+        <span class="section-meta">models &#8804;32GB VRAM · iGPU/dGPU · past 1–2 months · OV topology gaps</span>
+    </div>
+    <div id="archList"></div>
+
+    <!-- Action Items -->
+    <div class="section-divider">
+        <h2>&#9989; Action <span>Items</span></h2>
+        <hr>
+        <span class="section-meta">saved in browser · resets each new week</span>
+    </div>
+    <div class="panel">
+        <div id="actionList"></div>
+        <button class="add-action-btn" onclick="addAction()">+ Add action item</button>
+        <div class="panel-title" style="margin-top: 20px; margin-bottom: 6px;">Weekly Notes</div>
+        <textarea class="notes-area" id="weeklyNotes"
+            placeholder="Paste summaries, key observations, links, follow-ups…"
+            oninput="saveNotes()"></textarea>
+    </div>
+
+    <footer id="footerEl"></footer>
+</div>
+
+<script>
+// ═══════════════════════════════════════════════════════════════════
+// DATA SECTION — EDIT THIS WEEKLY
+// ═══════════════════════════════════════════════════════════════════
+
+const WEEK    = "WW45";
+const YEAR    = "2026";
+const UPDATED = "2026-11-05";
+
+// OpenVINO status values: "supported" | "partial" | "testing" | "gap" | "none" | "na"
+// Priority values:        "p1" | "p2" | "p3"
+const trendingModels = [
+    {
+        name: "DeepSeek V4.1-Flash",
+        maker: "DeepSeek · Sep 2026",
+        type: "LLM (MoE)",
+        params: "8B/16B active · 552B total · 1M ctx",
+        modality: "Text",
+        ovinoStatus: "gap",
+        priority: "p1",
+        notes: "MIT license; dominant for cost-effective enterprise on-prem; MoE architecture not yet in OV GenAI pipeline; top coding + agentic benchmark"
+    },
+    {
+        name: "Qwen3.8-27B",
+        maker: "Alibaba · Aug 2026",
+        type: "LLM (Dense)",
+        params: "27B",
+        modality: "Text",
+        ovinoStatus: "testing",
+        priority: "p1",
+        notes: "6.76M downloads — most downloaded open model of 2026; Apache 2.0; primary target for single-GPU and quantized edge deployment"
+    },
+    {
+        name: "Qwen3.6-27B",
+        maker: "Alibaba · 2026",
+        type: "LLM (Dense)",
+        params: "27B",
+        modality: "Text",
+        ovinoStatus: "partial",
+        priority: "p1",
+        notes: "Community go-to for 24GB-class self-hosting; OV 2026.4 supports but lacks Continuous Batching — limits high-throughput serving"
+    },
+    {
+        name: "Kimi K3.1 Pro",
+        maker: "Moonshot · Nov 2026",
+        type: "LLM",
+        params: "~46B (est.)",
+        modality: "Text",
+        ovinoStatus: "gap",
+        priority: "p2",
+        notes: "#1 open-weight leaderboard Nov 2026; weights released Nov 2; leads by 13.9 index points; architecture not yet analyzed for OV"
+    },
+    {
+        name: "Gemma 4",
+        maker: "Google · 2026",
+        type: "LLM (Dense + MoE)",
+        params: "4B / 12B / 27B + 26B-A4B MoE",
+        modality: "Text + Vision",
+        ovinoStatus: "partial",
+        priority: "p1",
+        notes: "Best-rated edge/mobile model; Apache 2.0; 256K context; MoE variant in OV 2026.4 but lacks Continuous Batching"
+    },
+    {
+        name: "GLM-5.3",
+        maker: "Zhipu AI · 2026",
+        type: "LLM (MoE family)",
+        params: "MoE family",
+        modality: "Text",
+        ovinoStatus: "gap",
+        priority: "p2",
+        notes: "MIT license; leads coding + agentic benchmarks; strong CN enterprise deployment; GLM-5.3 Flash affordable tier not in OV"
+    },
+    {
+        name: "Qwen3-Coder-Next",
+        maker: "Alibaba · 2026",
+        type: "LLM (MoE)",
+        params: "MoE family",
+        modality: "Text",
+        ovinoStatus: "partial",
+        priority: "p2",
+        notes: "Coding-specialized Qwen3 variant; OV 2026.4 supports but lacks Continuous Batching; strong demand from developer tooling segment"
+    }
+];
+
+// integration values: "supported" | "partial" | "gap" | "none" | "na"
+const frameworkActivity = [
+    {
+        name: "vLLM",
+        abbr: "vL",
+        color: "#7c3aed",
+        bg: "rgba(124,58,237,.15)",
+        version: "0.32.0",
+        change: "Model Runner V2 (Elastic EP, MLA pipeline parallelism); NVFP4 KV cache on SM8x/SM90/SM100; EAGLE-3 + Mamba2 MTP speculative decode; EmbeddingGemma 2 (omni-modal text/image/audio/video); Nemotron 3.5 ASR; NemotronH / Granite-4.0-H / Falcon-H1 hybrid models; Anthropic Messages API + gRPC; 200+ architectures",
+        integration: "partial",
+        notes: "Intel Gaudi plugin available as hardware EP; OpenVINO CPU backend lags v0.32 API; structured output now native; supports AMD ROCm, TPU, Ascend, Apple Silicon, MetaX GPU"
+    },
+    {
+        name: "SGLang",
+        abbr: "SG",
+        color: "#b45309",
+        bg: "rgba(180,83,9,.12)",
+        version: "0.5.22",
+        change: "DSpark speculative decoding (confidence-driven, 383 tok/s on DeepSeek-V4-Pro TP8); 2.38× faster cold start (Qwen3-32B: 85s→36s); 2.3× more DeepSeek-V4.1 throughput/GPU on H200; 22% faster TTFT for Kimi K3; Inkling 975B MoE (1M ctx, 71.7k tok/s input); SGLang-Diffusion (−30GB VRAM, +58% perf); Decisions API; Rust prefix cache; day-0 for Qwen3.8-Flash-Next, GLM-5.3-Flash, Kimi K2 Horizon",
+        integration: "gap",
+        notes: "No OpenVINO backend; fastest for prefix-heavy / agentic workloads via RadixAttention V2 (29% above vLLM); 60+ model families; XGrammar structured output standard"
+    },
+    {
+        name: "llama.cpp",
+        abbr: "ll",
+        color: "#15803d",
+        bg: "rgba(21,128,61,.15)",
+        version: "0.7.0",
+        change: "v0.5 (Sep): CUDA conv2D acceleration, Metal MoE/SSM fusion, HunyuanOCR; v0.6 (Oct): llama_batch_ext API, Metal perf boosts; v0.7 (Oct 16): latest; Apr 2026: tensor parallelism, 1-bit Q1_0 quant, Gemma 4, AMD CDNA4, Qualcomm Hexagon backends",
+        integration: "testing",
+        notes: "⚡ OV 2026.1 shipped preview OpenVINO backend for llama.cpp (validated: Llama 3.2 1B, Phi-3 mini, Qwen 2.5 1.5B, Mistral 7B in GGUF); making OV default would auto-route Ollama traffic"
+    },
+    {
+        name: "Ollama",
+        abbr: "Ol",
+        color: "#475569",
+        bg: "rgba(71,85,105,.12)",
+        version: "latest",
+        change: "Wraps llama.cpp as backend (Jun 2026); one-command local server; OpenAI-compatible /v1 API; huge developer mindshare",
+        integration: "testing",
+        notes: "OV reachable via llama.cpp preview backend (OV 2026.1); promoting OV as default llama.cpp build would surface OpenVINO to all Ollama users on Intel hardware automatically"
+    },
+    {
+        name: "ONNX Runtime",
+        abbr: "OR",
+        color: "#0369a1",
+        bg: "rgba(3,105,161,.12)",
+        version: "1.30.0",
+        change: "INT4 paged KV cache on CUDA; INT8 blocks on WebGPU; Arm NEON/SVE LinearAttention; Go bindings; LoRA via plugin EP; WebGPU plugin for Linux AArch64; GenAI: multi-LoRA, continuous decoding, constrained decoding; 40–60% latency reduction vs Python loop; models: DeepSeek, Gemma, Granite MoE, Qwen VL, SmolLM3, LFM2, Whisper",
+        integration: "supported",
+        notes: "OpenVINO EP actively maintained; most complete NPU path: Intel Core Ultra, Snapdragon (QNN EP), Apple Silicon; speculative decoding on roadmap"
+    },
+    {
+        name: "HuggingFace TGI",
+        abbr: "TG",
+        color: "#64748b",
+        bg: "rgba(100,116,139,.12)",
+        version: "ARCHIVED",
+        change: "⚠ Archived Mar 21, 2026 — HF now officially recommends vLLM, SGLang, llama.cpp, or MLX for all new projects",
+        integration: "na",
+        notes: "No longer maintained; existing OV integration obsolete; redirect users to vLLM or llama.cpp paths"
+    },
+    {
+        name: "TensorRT-LLM",
+        abbr: "TR",
+        color: "#16a34a",
+        bg: "rgba(22,163,74,.12)",
+        version: "1.3.0",
+        change: "40,000+ tok/s on Llama 4 with B200; 2–5× vs vLLM on H100; FP8/FP4/INT4-AWQ/INT8-SmoothQuant; speculative decode (3.6× speedup); FP8 LoRA; Qwen3.5 (MoE + custom routing); Kimi K3, GLM-5.3-Flash, MiniMax-M3; prefix caching for Mamba hybrids; Edge-LLM: Muse-Glimmer, Nemotron 3.5 Bolt, DSpark, video input",
+        integration: "none",
+        notes: "NVIDIA-only (Hopper/Blackwell); benchmark reference for MoE batching, speculative decode, and low-precision serving parity"
+    }
+];
+
+// ovinoSupport values: "supported" | "partial" | "gap" | "none"
+const agentFrameworks = [
+    {
+        name: "LangChain",
+        version: "1.0",
+        ovinoSupport: "partial",
+        notes: "Major 1.0 milestone shipped; ChatOpenVINO + OpenVINOEmbeddings available; structured output / JSON mode for tool calling still partial"
+    },
+    {
+        name: "LangGraph",
+        version: "0.4.x",
+        ovinoSupport: "partial",
+        notes: "Main stateful orchestration layer of LangChain 1.0; OpenVINO reachable via ChatOpenVINO; gaining adoption over raw LangChain chains"
+    },
+    {
+        name: "LlamaIndex",
+        version: "0.14.x",
+        ovinoSupport: "partial",
+        notes: "OpenVINOLLM + OpenVINOEmbedding maintained; dynamic quantization + KV-cache quantization documented; leading RAG framework"
+    },
+    {
+        name: "AutoGen / MS Agent Framework",
+        version: "0.6.x",
+        ovinoSupport: "partial",
+        notes: "Rebranded as Microsoft Agent Framework; LangChain adapter exposes OpenVINO tools; GSoC 2026 Agentic Toolkit targeting native integration"
+    },
+    {
+        name: "smolagents",
+        version: "0.3.x",
+        ovinoSupport: "partial",
+        notes: "HuggingFace lightweight agent SDK; VLMPipeline + TextEmbeddingPipeline power agent tools; GSoC 2026 Agentic Toolkit target"
+    },
+    {
+        name: "CrewAI",
+        version: "1.x",
+        ovinoSupport: "partial",
+        notes: "Popular multi-agent team patterns; inherits LangChain 1.0 integration; works via ChatOpenVINO"
+    },
+    {
+        name: "OpenAI Agents SDK",
+        version: "2.x",
+        ovinoSupport: "gap",
+        notes: "OpenAI-only by design; no OpenVINO path; watch for community local-inference forks or MCP server bridging"
+    }
+];
+
+// impact values: "high" | "medium" | "low"
+// status values: "planned" | "in-progress" | "investigating" | "gap"
+const gaps = [
+    {
+        area: "MoE Continuous Batching",
+        impact: "high",
+        status: "in-progress",
+        affectedModels: "Gemma 4, Qwen3.5, Qwen3.6, Qwen3-Coder-Next, Qwen3.8-27B",
+        detail: "OV 2026.4 supports these MoE models but without Continuous Batching — blocking high-throughput production serving. Models run but throughput does not scale with concurrent users. Critical gap vs vLLM/SGLang."
+    },
+    {
+        area: "DeepSeek V4.1-Flash Support",
+        impact: "high",
+        status: "gap",
+        affectedModels: "DeepSeek V4.1-Flash (552B MoE, MIT, 1M context)",
+        detail: "Top enterprise on-prem model (Nov 2026); MIT license drives massive adoption; 1M context window. MoE + MLA architecture not yet in OV GenAI pipeline. High customer demand from CN and global enterprise."
+    },
+    {
+        area: "SGLang OpenVINO Backend",
+        impact: "high",
+        status: "gap",
+        affectedModels: "All LLMs served via SGLang",
+        detail: "SGLang v0.5.22 delivers 5× throughput vs vLLM on prefix-heavy/agentic workloads via RadixAttention + XGrammar. No OpenVINO backend. Fast-growing mindshare in structured output + agent serving — critical channel gap."
+    },
+    {
+        area: "Ollama Default Backend",
+        impact: "high",
+        status: "investigating",
+        affectedModels: "All local deployment models via Ollama",
+        detail: "Ollama now wraps llama.cpp (Jun 2026). OpenVINO backend exists in llama.cpp but requires manual cmake flag. Opportunity: making OV the default llama.cpp backend would automatically route all Ollama traffic through OpenVINO on Intel hardware."
+    },
+    {
+        area: "Kimi K3.1 Pro / GLM-5.3 Architecture",
+        impact: "medium",
+        status: "investigating",
+        affectedModels: "Kimi K3.1 Pro (#1 open weight Nov 2026), GLM-5.3 (CN coding leader, MIT)",
+        detail: "Both are top Nov 2026 open-weight models from Chinese labs. Neither has validated OV support. Architecture analysis needed; GLM-5.3 uses novel MoE variant. Significant CN enterprise and coding deployment base."
+    },
+    {
+        area: "Long Context Efficiency (1M+ tokens)",
+        impact: "medium",
+        status: "gap",
+        affectedModels: "DeepSeek V4.1-Flash (1M), Llama 4 (10M), Kimi K3.1 (1M)",
+        detail: "Top 2026 models support 1M–10M token contexts. OV memory efficiency at these lengths unvalidated. KV-cache compression and sliding-window attention for ultra-long context not optimized."
+    },
+    {
+        area: "Structured Output (XGrammar) Integration",
+        impact: "medium",
+        status: "gap",
+        affectedModels: "All LLMs via agent frameworks (LangChain, SGLang, AutoGen)",
+        detail: "XGrammar-based constrained decoding is now standard in SGLang and vLLM for reliable tool calling and JSON mode. No OpenVINO integration with XGrammar or Outlines. Blocks agentic workflows needing guaranteed structured output."
+    }
+];
+
+// Default action items (overridden by localStorage per week key)
+const defaultActions = [
+    { id: 1, text: "Investigate DeepSeek V4.1-Flash architecture — file JIRA for OV GenAI pipeline support", owner: "", due: "WW46", done: false },
+    { id: 2, text: "Track Qwen3.8-27B OV validation — confirm Continuous Batching gap vs Qwen3.6", owner: "", due: "WW46", done: false },
+    { id: 3, text: "Assess llama.cpp v0.5 OV backend path — feasibility of making it default for Ollama routing", owner: "", due: "WW47", done: false },
+    { id: 4, text: "Review SGLang XGrammar source — evaluate OV integration complexity, draft RFC", owner: "", due: "WW47", done: false },
+    { id: 5, text: "Evaluate Kimi K3.1 Pro architecture — check OV model conversion compatibility", owner: "", due: "WW47", done: false },
+    { id: 6, text: "Coordinate with GSoC 2026 Agentic Toolkit team — align OV GenAI pipeline priorities", owner: "", due: "WW46", done: false }
+];
+
+// Architecture gap analysis — new topologies in models fitting ≤32GB VRAM (past 1–2 months)
+// severity: "critical" (cannot run) | "partial" (quality / correctness gap) | "optimization" (runs but inefficient)
+const archAnalysis = [
+    {
+        name: "Gated Delta Net (GDN) Linear Attention",
+        severity: "critical",
+        models: [
+            { name: "Qwen3.5-35B-A3B", vram: "~25GB Q5" },
+            { name: "Qwen3.5-27B (dense)", vram: "~18GB Q4" },
+            { name: "Qwen3.5-Omni (Thinker-Talker)", vram: "varies" }
+        ],
+        mechanism: "Replaces 75% of Transformer attention layers with Gated Delta Network (GDN) — a selective linear-attention SSM based on the delta update rule (H_t = G_t ⊙ H_{t-1} + k_t v_t^T). The 60-layer Qwen3.5 block pattern is 15×[3×(GDN→MoE) + 1×(Full-Attn→MoE)]. GDN operates in O(n) time vs O(n²) for softmax attention, delivering 8.6× faster decode at 32K context and 19× at 256K context on identical hardware vs Qwen3-Max.",
+        gaps: [
+            "GDN selective scan / delta-rule state update has no OV op equivalent — closest analogue is Mamba SSM which is also absent from OV op set",
+            "Linear cumulative product over sequence (H_t recurrence) cannot be expressed in OV IR without a custom extension op",
+            "Hybrid graph mixing GDN layers and standard attention layers in a single forward pass is not representable in the current OV model conversion pipeline",
+            "GDN hidden state is recurrent (carry-over between tokens), not cached like KV — OV's generation loop has no mechanism to thread SSM state across decode steps"
+        ],
+        ovStatus: "Cannot run — GDN scan op missing; model conversion fails or produces garbage output"
+    },
+    {
+        name: "Per-Layer Embeddings (PLE) + Shared KV Cache",
+        severity: "partial",
+        models: [
+            { name: "Gemma 4 E4B (edge, text/img/audio/video)", vram: "~4.6GB Q4" },
+            { name: "Gemma 4 E2B (edge)", vram: "~2.5GB Q4" }
+        ],
+        mechanism: "Instead of one shared token embedding matrix reused across all layers, each transformer layer receives its own independent embedding that is added to the layer's hidden state input. This provides per-layer representational specialization equivalent to a much larger model's depth, without MoE parameter overhead. The E2B/E4B additionally apply a Shared KV Cache across the final few layers — the same KV buffer is reused by multiple consecutive layers — to reduce memory footprint for edge deployment.",
+        gaps: [
+            "OV assumes embedding weight sharing (input embed = output projection, possibly transposed); PLE requires N separate embedding matrices loaded and applied per layer — OV may incorrectly fuse or deduplicate them during graph optimization",
+            "Shared KV Cache across layers requires a different KV cache allocation and indexing graph; OV currently allocates one independent KV buffer per layer with no sharing",
+            "HuggingFace transformers export of PLE models may emit N identical-looking embedding ops; OV constant folding may collapse them to one, silently breaking layer-specific specialization"
+        ],
+        ovStatus: "Partial — model may convert and run but PLE fusing → silent quality regression; short contexts may hide it"
+    },
+    {
+        name: "Dual RoPE (Local Sliding-Window + Global Full Attention)",
+        severity: "partial",
+        models: [
+            { name: "Gemma 4 12B (image+audio)", vram: "~8.3GB Q4" },
+            { name: "Gemma 4 26B A4B MoE", vram: "~15GB Q4" },
+            { name: "Gemma 4 31B dense", vram: "~19.7GB Q4" }
+        ],
+        mechanism: "Gemma 4 applies two distinct RoPE position encodings in an interleaved pattern: a low-frequency θ_global for full-attention layers (256K context) and a high-frequency θ_local for local sliding-window attention layers. Each layer's attention heads receive a different rotation matrix depending on whether it is a local or global layer. Local layers attend only within a fixed window (e.g., 4096 tokens) using a causal sliding-window mask; global layers attend the full sequence. This is distinct from standard single-θ RoPE (LLaMA/Qwen style).",
+        gaps: [
+            "OV rope kernel implements a single θ per model; Dual RoPE requires two distinct base frequencies applied layer-conditionally with no current API to express this",
+            "OV attention op has no per-layer 'is_local_window' flag — sliding-window causal mask is not supported as a first-class attention mode; fallback is full-attention (up to 16× more compute per local layer)",
+            "Without sliding-window masking, local-layer attention incorrectly attends the full sequence → positional encoding corruption and quality degradation on contexts >8K tokens"
+        ],
+        ovStatus: "Partial — single global RoPE applied to all layers; local-window masking absent → degraded quality >8K ctx"
+    },
+    {
+        name: "Encoder-Free Native Multimodal Backbone",
+        severity: "critical",
+        models: [
+            { name: "Gemma 4 12B (image + audio native)", vram: "~8.3GB Q4" },
+            { name: "Gemma 4 E4B (text+img+audio+video)", vram: "~4.6GB Q4" },
+            { name: "Gemma 4 26B A4B (vision)", vram: "~15GB Q4" }
+        ],
+        mechanism: "Instead of a separate vision/audio encoder (SigLIP, CLIP, Whisper) that tokenizes media into embeddings before the LLM, Gemma 4 natively processes raw image patches and audio frames through the LLM backbone itself with no distinct encoder module. Variable-resolution images use a configurable visual token budget controlling how many tokens represent the image. Audio frames and video tokens are interleaved directly into the token stream alongside text, using the same embedding space.",
+        gaps: [
+            "OV GenAI VLM pipeline is built around an encoder-decoder split (SigLIP/CLIP encoder → LLM); encoder-free native multimodal requires a fundamentally different graph with no encoder subgraph",
+            "OV image preprocessing pipeline expects CLIP-style normalized patch embeddings at a fixed resolution; Gemma 4 uses variable-aspect-ratio raw patches at configurable token budget",
+            "Dynamic visual token count (variable image resolution) requires dynamic shape handling that OV's static/semi-static graph optimization does not support efficiently — shape inference fails or pads to max",
+            "Audio-to-token ingestion natively in LLM backbone (no Whisper-style encoder stage) has no corresponding OV GenAI pipeline template or preprocessing graph"
+        ],
+        ovStatus: "Cannot run multimodal — VLM pipeline graph incompatible; text-only path may work if converted separately"
+    },
+    {
+        name: "Mamba-2 SSM + Latent MoE + MTP Hybrid",
+        severity: "critical",
+        models: [
+            { name: "Nemotron 3.5 Lightning 30B-A3B", vram: "~15GB INT4" },
+            { name: "NemotronH / Granite-4.0-H / Falcon-H1", vram: "varies" }
+        ],
+        mechanism: "Interleaves three distinct layer types: (1) Mamba-2 SSM layers — structured state space with complex-valued recurrent state transitions, enabling O(n) long-context at 1M tokens without KV cache; (2) Sparse MoE feed-forward layers with 'Latent MoE' routing — tokens are first projected to a smaller latent space before being routed to experts, improving accuracy per activated byte; (3) Standard Transformer attention layers. Multi-Token Prediction (MTP) head predicts next N tokens in parallel for both training efficiency and inference speedup. Ships in NVFP4 and BF16.",
+        gaps: [
+            "Mamba-2 structured state space (SSM) selective scan: complex-valued recurrent state update (Δ, A, B, C matrices with structured transitions) has no OV op equivalent — requires dedicated SSM kernel",
+            "Latent MoE projection (token → latent space → expert routing → output) is a 3-stage routing pattern OV's MoE implementation does not support; standard MoE routes from full hidden dim",
+            "MTP branch adds parallel multi-token output heads to the graph topology — OV model converter does not handle branching output heads during autoregressive generation",
+            "Mamba-2 recurrent state is a carry-over hidden state across tokens (not KV cache) — OV's generation loop has no mechanism to manage or persist SSM state between decode steps"
+        ],
+        ovStatus: "Cannot run — Mamba-2 SSM ops absent; model conversion will fail or produce incorrect output"
+    },
+    {
+        name: "MXFP4 Native Block Quantization",
+        severity: "optimization",
+        models: [
+            { name: "GPT-OSS 20B (OpenAI, 3.6B active MoE)", vram: "~11.3GB MXFP4 → ~22GB on OV" },
+            { name: "GLM-5.3-Flash", vram: "varies" }
+        ],
+        mechanism: "Microscaling FP4 (MXFP4 / NVFP4) is a block-based quantization where each 32-element group shares one FP8 scale factor, with each weight stored as FP4 (E2M1 format). Unlike INT4 (integer with separate zero-point), each element retains a floating-point mantissa, achieving higher accuracy at the same bit-width. NVIDIA H100/H200 and Blackwell have native NVFP4 tensor cores. GPT-OSS 20B stores 20.9B parameters in MXFP4 at 11.3GB total, fitting a 16GB dGPU.",
+        gaps: [
+            "OV compression (NNCF) supports INT4 and FP8 but not MXFP4 format — MXFP4 weights must be dequantized to BF16/FP16 for OV inference, doubling effective memory footprint (~22GB vs 11.3GB)",
+            "NNCF has no MXFP4 calibration path — cannot re-quantize a model to MXFP4 natively for Intel hardware, so INT4 is the closest alternative (similar size but slightly lower accuracy)",
+            "Intel Xe2 GPU (Battlemage) may add FP4 tensor core support; until then there is no hardware-accelerated MXFP4 path on Intel dGPU — model is performance-competitive only after INT4 re-quantization"
+        ],
+        ovStatus: "Optimization gap — model runs correctly after dequantization, but ~2× more VRAM than on NVIDIA hardware"
+    }
+];
+
+// ═══════════════════════════════════════════════════════════════════
+// RENDERING — Do not edit below unless changing layout/style
+// ═══════════════════════════════════════════════════════════════════
+
+const STORAGE_KEY = `ov-intel-actions-${WEEK}-${YEAR}`;
+const NOTES_KEY   = `ov-intel-notes-${WEEK}-${YEAR}`;
+
+function statusBadge(s) {
+    const map = {
+        supported: ['badge-green',  'Supported'],
+        partial:   ['badge-amber',  'Partial'],
+        testing:   ['badge-blue',   'Testing'],
+        gap:       ['badge-red',    'Gap'],
+        none:      ['badge-gray',   'None'],
+        na:        ['badge-gray',   'N/A'],
+    };
+    const [cls, label] = map[s] || ['badge-gray', s];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function prioBadge(p) {
+    const labels = { p1: 'P1', p2: 'P2', p3: 'P3' };
+    return `<span class="prio prio-${p}">${labels[p] || p}</span>`;
+}
+
+function impactLabel(i) {
+    const map = { high: 'High Impact', medium: 'Medium', low: 'Low' };
+    return `<span class="impact-${i === 'medium' ? 'med' : i}">${map[i] || i}</span>`;
+}
+
+function statusSmall(s) {
+    const map = {
+        'in-progress':  ['badge-amber',  'In Progress'],
+        gap:            ['badge-red',    'Gap'],
+        planned:        ['badge-blue',   'Planned'],
+        investigating:  ['badge-purple', 'Investigating'],
+        done:           ['badge-green',  'Done'],
+    };
+    const [cls, label] = map[s] || ['badge-gray', s];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderKPIs() {
+    const p1Gaps  = trendingModels.filter(m => m.priority === 'p1' && m.ovinoStatus !== 'supported').length;
+    const highGap = gaps.filter(g => g.impact === 'high').length;
+    const agentGap = agentFrameworks.filter(a => a.ovinoSupport === 'gap' || a.ovinoSupport === 'none').length;
+    const fwOk = frameworkActivity.filter(f => f.integration === 'supported' || f.integration === 'partial').length;
+
+    document.getElementById('kpiGrid').innerHTML = `
+        <div class="kpi-card">
+            <div class="label">P1 Models — Gaps</div>
+            <div class="value c-red">${p1Gaps}</div>
+            <div class="sub">missing full OpenVINO support</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">High-Impact Gaps</div>
+            <div class="value c-amber">${highGap}</div>
+            <div class="sub">requiring engineering action</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Agent Frameworks w/ Gaps</div>
+            <div class="value c-purple">${agentGap}</div>
+            <div class="sub">out of ${agentFrameworks.length} tracked</div>
+        </div>
+        <div class="kpi-card">
+            <div class="label">Frameworks w/ Integration</div>
+            <div class="value c-green">${fwOk}</div>
+            <div class="sub">out of ${frameworkActivity.length} tracked</div>
+        </div>
+    `;
+}
+
+function renderModels() {
+    document.getElementById('modelsTbody').innerHTML = trendingModels.map(m => `
+        <tr>
+            <td>
+                <div class="model-name">${m.name}</div>
+                <div class="model-maker">${m.maker}</div>
+            </td>
+            <td><span style="font-size:.76rem; color:#94a3b8;">${m.type}</span></td>
+            <td><span style="font-size:.76rem; color:#94a3b8; white-space:nowrap;">${m.params}</span></td>
+            <td><span style="font-size:.76rem; color:#94a3b8;">${m.modality}</span></td>
+            <td>${statusBadge(m.ovinoStatus)}</td>
+            <td>${prioBadge(m.priority)}</td>
+            <td class="notes-text">${m.notes}</td>
+        </tr>
+    `).join('');
+}
+
+function renderFrameworks() {
+    document.getElementById('frameworkList').innerHTML = frameworkActivity.map(f => `
+        <div class="fw-row">
+            <div class="fw-icon" style="background:${f.bg}; color:${f.color};">${f.abbr}</div>
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="fw-name">${f.name}</span>
+                    <span class="fw-version">v${f.version}</span>
+                    ${statusBadge(f.integration)}
+                </div>
+                <div class="fw-change">${f.change}</div>
+                <div class="fw-change" style="color:#64748b; margin-top:3px;">&#8627; ${f.notes}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderAgents() {
+    document.getElementById('agentList').innerHTML = agentFrameworks.map(a => `
+        <div class="fw-row">
+            <div style="flex:1; min-width:0;">
+                <div style="display:flex; align-items:center; gap:8px; flex-wrap:wrap;">
+                    <span class="fw-name">${a.name}</span>
+                    <span class="fw-version">v${a.version}</span>
+                    ${statusBadge(a.ovinoSupport)}
+                </div>
+                <div class="fw-change" style="margin-top:4px;">&#8627; ${a.notes}</div>
+            </div>
+        </div>
+    `).join('');
+}
+
+function renderGaps() {
+    document.getElementById('gapList').innerHTML = gaps.map(g => `
+        <div class="gap-row">
+            <div class="gap-row-top">
+                <span class="gap-title">${g.area}</span>
+                ${impactLabel(g.impact)}
+                ${statusSmall(g.status)}
+            </div>
+            <div style="font-size:.72rem; color:#475569; margin-bottom:4px;">Affects: ${g.affectedModels}</div>
+            <div class="gap-detail">${g.detail}</div>
+        </div>
+    `).join('');
+}
+
+// ─── Architecture Tech Analysis ────────────────────────────
+
+function sevBadge(s) {
+    const map = {
+        critical:     ['badge-red',   'Critical — Cannot Run'],
+        partial:      ['badge-amber', 'Partial — Quality Gap'],
+        optimization: ['badge-blue',  'Optimization Gap'],
+    };
+    const [cls, label] = map[s] || ['badge-gray', s];
+    return `<span class="badge ${cls}">${label}</span>`;
+}
+
+function renderArchAnalysis() {
+    document.getElementById('archList').innerHTML = archAnalysis.map(a => {
+        const sevCls    = { critical:'sev-critical', partial:'sev-partial', optimization:'sev-optimization' }[a.severity];
+        const statusCls = { critical:'ov-cannot', partial:'ov-partial-s', optimization:'ov-optim' }[a.severity];
+        const modelChips = a.models.map(m =>
+            `<span class="arch-model-chip"><strong style="color:#e2e8f0;">${m.name}</strong><span class="vram-chip">${m.vram}</span></span>`
+        ).join('');
+        const gapItems = a.gaps.map(g =>
+            `<div class="arch-gap-item"><span class="arch-gap-bullet">&#9656;</span>${g}</div>`
+        ).join('');
+        return `
+        <div class="arch-card ${sevCls}">
+            <div class="arch-header">
+                <div class="arch-name">${a.name}</div>
+                ${sevBadge(a.severity)}
+            </div>
+            <div class="arch-models-row">${modelChips}</div>
+            <div class="arch-mech">${a.mechanism}</div>
+            <div class="arch-gaps-title">OpenVINO Gaps</div>
+            ${gapItems}
+            <div class="arch-status-row">
+                <span class="arch-status-label">OV Status:</span>
+                <span class="${statusCls}">${a.ovStatus}</span>
+            </div>
+        </div>`;
+    }).join('');
+}
+
+// ─── Action Items (localStorage per week) ──────────────────
+
+let actions = [];
+
+function loadActions() {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    actions = saved ? JSON.parse(saved) : defaultActions.map(a => ({ ...a }));
+}
+
+function saveActions() {
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(actions));
+}
+
+function saveNotes() {
+    localStorage.setItem(NOTES_KEY, document.getElementById('weeklyNotes').value);
+}
+
+function renderActions() {
+    document.getElementById('actionList').innerHTML = actions.map((a, i) => `
+        <div class="action-item">
+            <div class="action-check ${a.done ? 'done' : ''}" onclick="toggleAction(${i})"></div>
+            <div style="flex:1; min-width:0;">
+                <div class="action-text ${a.done ? 'done-text' : ''}">${a.text}</div>
+                <div class="action-meta">
+                    ${a.owner ? `<span class="action-owner">&#128100; ${a.owner}</span>` : ''}
+                    ${a.due   ? `<span class="action-due">${a.due}</span>` : ''}
+                </div>
+            </div>
+            <span class="action-remove" onclick="removeAction(${i})" title="Remove">&#10005;</span>
+        </div>
+    `).join('');
+}
+
+function toggleAction(i) {
+    actions[i].done = !actions[i].done;
+    saveActions();
+    renderActions();
+}
+
+function removeAction(i) {
+    if (!confirm('Remove this action item?')) return;
+    actions.splice(i, 1);
+    saveActions();
+    renderActions();
+}
+
+function addAction() {
+    const text = prompt('New action item:');
+    if (!text || !text.trim()) return;
+    const due   = prompt('Due week (e.g. WW46), or leave blank:') || '';
+    const owner = prompt('Owner (name or leave blank):') || '';
+    actions.push({ id: Date.now(), text: text.trim(), owner, due, done: false });
+    saveActions();
+    renderActions();
+}
+
+function init() {
+    document.getElementById('periodBadge').textContent = `${WEEK} · ${YEAR}`;
+    document.getElementById('footerEl').textContent =
+        `Last updated: ${UPDATED}  ·  Edit the DATA SECTION in this file to update each week`;
+
+    renderKPIs();
+    renderModels();
+    renderFrameworks();
+    renderAgents();
+    renderGaps();
+    renderArchAnalysis();
+
+    loadActions();
+    renderActions();
+
+    const savedNotes = localStorage.getItem(NOTES_KEY);
+    if (savedNotes) document.getElementById('weeklyNotes').value = savedNotes;
+}
+
+init();
+</script>
+</body>
+</html>

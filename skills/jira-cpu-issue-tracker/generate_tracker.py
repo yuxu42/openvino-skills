@@ -31,7 +31,6 @@ from pathlib import Path
 # ── Defaults ─────────────────────────────────────────────────────────────────
 JIRA_URL = os.environ.get("JIRA_URL", "https://jira.devtools.intel.com")
 CLOSED_STATUSES = ["Implemented", "In testing", "Verified", "Closed"]
-EXPOSURE_FIELD  = "customfield_13805"   # JIRA Exposure custom field
 
 
 # ── CLI args ─────────────────────────────────────────────────────────────────
@@ -106,6 +105,7 @@ def get_current_open(pat, project, component, jira_url=JIRA_URL):
 # ── Data fetching ─────────────────────────────────────────────────────────────
 def fetch_data(pat, project, component, start_date, end_date, jira_url=JIRA_URL):
     closed_in = ", ".join(f'"{s}"' for s in CLOSED_STATUSES)
+    # day before start for the "after" clause
     day_before = (datetime.strptime(start_date, "%Y-%m-%d") - timedelta(days=1)).strftime("%Y-%m-%d")
 
     print(f"Fetching new issues ({start_date} → {end_date})...")
@@ -130,54 +130,6 @@ def fetch_data(pat, project, component, start_date, end_date, jira_url=JIRA_URL)
     return new_issues, closed_issues
 
 
-def fetch_high_exposure_bugs(pat, project, component, jira_url=JIRA_URL):
-    """
-    Fetch open Bug tickets with Critical or High exposure (issuetype=Bug only).
-    Returns list of dicts with key, summary, status, exposure, created, updated.
-
-    NOTE: The Exposure field (customfield_13805) captures customer-facing impact.
-          Filtering by issuetype=Bug avoids conflating Epics/Stories with defects.
-    """
-    closed_in = ", ".join(f'"{s}"' for s in CLOSED_STATUSES)
-    jql = (
-        f'project = {project} AND component = "{component}"'
-        f' AND issuetype = Bug'
-        f' AND status not in ({closed_in})'
-        f' AND "Exposure" in ("1-Critical","2-High")'
-        f' ORDER BY EXPOSURE ASC, updated DESC'
-    )
-    fields = f"key,summary,priority,status,created,updated,{EXPOSURE_FIELD}"
-    issues = jira_search_all(pat, jql, fields=fields, jira_url=jira_url)
-
-    result = []
-    for iss in issues:
-        f = iss["fields"]
-        exp_field = f.get(EXPOSURE_FIELD) or {}
-        result.append({
-            "key":     iss["key"],
-            "summary": (f.get("summary") or "")[:120],
-            "status":  f["status"]["name"],
-            "exposure": exp_field.get("value", "") if isinstance(exp_field, dict) else "",
-            "created": (f.get("created") or "")[:10],
-            "updated": (f.get("updated") or "")[:10],
-        })
-    return result
-
-
-def fetch_exposure_map(pat, keys, jira_url=JIRA_URL):
-    """Return {issue_key: exposure_value} for a list of keys."""
-    if not keys:
-        return {}
-    jql = f'issue in ({",".join(keys)})'
-    fields = f"key,{EXPOSURE_FIELD}"
-    issues = jira_search_all(pat, jql, fields=fields, jira_url=jira_url)
-    out = {}
-    for iss in issues:
-        exp = iss["fields"].get(EXPOSURE_FIELD) or {}
-        out[iss["key"]] = exp.get("value", "") if isinstance(exp, dict) else ""
-    return out
-
-
 # ── Daily breakdown ───────────────────────────────────────────────────────────
 def build_daily(new_issues, closed_issues, start_date, end_date):
     days = []
@@ -194,21 +146,22 @@ def build_daily(new_issues, closed_issues, start_date, end_date):
         created = iss["fields"]["created"][:10]
         if start_date <= created <= end_date:
             new_by_day[created].append({
-                "key": iss["key"],
-                "s":   (iss["fields"].get("summary") or "")[:90],
-                "p":   _prio(iss["fields"].get("priority", {})),
+                "key":  iss["key"],
+                "s":    iss["fields"].get("summary", "")[:90],
+                "p":    _prio(iss["fields"].get("priority", {})),
             })
 
     for iss in closed_issues:
         updated = iss["fields"]["updated"][:10]
         if start_date <= updated <= end_date:
             closed_by_day[updated].append({
-                "key": iss["key"],
-                "s":   (iss["fields"].get("summary") or "")[:90],
-                "p":   _prio(iss["fields"].get("priority", {})),
-                "st":  iss["fields"]["status"]["name"],
+                "key":  iss["key"],
+                "s":    iss["fields"].get("summary", "")[:90],
+                "p":    _prio(iss["fields"].get("priority", {})),
+                "st":   iss["fields"]["status"]["name"],
             })
 
+    # Status breakdown of closed issues
     status_counts = defaultdict(int)
     for iss in closed_issues:
         status_counts[iss["fields"]["status"]["name"]] += 1
@@ -217,11 +170,11 @@ def build_daily(new_issues, closed_issues, start_date, end_date):
 
 
 def _prio(p):
-    name = (p or {}).get("name", "")
+    name = p.get("name", "") if p else ""
     if "P1" in name or "Stopper" in name: return "P1"
-    if "P2" in name or "High" in name:    return "P2"
-    if "P3" in name or "Medium" in name:  return "P3"
-    if "P4" in name or "Low" in name:     return "P4"
+    if "P2" in name or "High" in name:   return "P2"
+    if "P3" in name or "Medium" in name: return "P3"
+    if "P4" in name or "Low" in name:    return "P4"
     return ""
 
 
@@ -237,7 +190,7 @@ def compute_open_totals(days, new_by_day, closed_by_day, current_open):
     return daily_new, daily_closed, open_total
 
 
-# ── HTML template ─────────────────────────────────────────────────────────────
+# ── HTML rendering ────────────────────────────────────────────────────────────
 HTML_TEMPLATE = r"""<!DOCTYPE html>
 <html lang="en">
 <head>
@@ -256,20 +209,17 @@ h1 span{color:#f87171}
 .badge::before{content:'';width:7px;height:7px;border-radius:50%;background:#f87171;display:inline-block}
 .sub{color:#94a3b8;font-size:.86rem;margin-top:6px}
 .sub a{color:#f87171;text-decoration:none}
-/* Summary */
 .sg{display:grid;grid-template-columns:repeat(5,1fr);gap:14px;margin-bottom:24px}
 @media(max-width:900px){.sg{grid-template-columns:repeat(3,1fr)}}
 .sc{background:#1e2130;border:1px solid #2d3348;border-radius:12px;padding:18px 20px}
 .sl{font-size:.70rem;color:#64748b;text-transform:uppercase;letter-spacing:.8px;font-weight:600;margin-bottom:8px}
 .sv{font-size:2.1rem;font-weight:700;line-height:1}
 .ss{font-size:.74rem;color:#64748b;margin-top:5px}
-/* Status pills */
 .sr{display:grid;grid-template-columns:repeat(4,1fr);gap:12px;margin-bottom:24px}
 .sp{background:#1e2130;border:1px solid #2d3348;border-radius:10px;padding:12px 16px;display:flex;align-items:center;gap:12px}
 .si{width:32px;height:32px;border-radius:8px;display:flex;align-items:center;justify-content:center;font-size:.9rem;flex-shrink:0}
 .pn{font-size:.68rem;color:#64748b;text-transform:uppercase;letter-spacing:.7px;font-weight:600}
 .pv{font-size:1.1rem;font-weight:700}
-/* Panel */
 .panel{background:#1e2130;border:1px solid #2d3348;border-radius:12px;padding:22px;margin-bottom:20px}
 .pt{font-size:.78rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;color:#64748b;margin-bottom:16px}
 .cw{width:100%;overflow-x:auto}
@@ -278,24 +228,6 @@ h1 span{color:#f87171}
 .li{display:flex;align-items:center;gap:6px}
 .ld{width:12px;height:12px;border-radius:3px;flex-shrink:0}
 .dn{font-size:.72rem;color:#475569;margin-top:12px;line-height:1.5}
-/* Exposure panel */
-.ci-grid{display:grid;grid-template-columns:1fr 1fr;gap:20px}
-@media(max-width:900px){.ci-grid{grid-template-columns:1fr}}
-.ci-col-title{font-size:.68rem;font-weight:700;text-transform:uppercase;letter-spacing:.8px;margin-bottom:10px;padding-bottom:8px;border-bottom:1px solid #2d3348}
-.ci-row{display:flex;align-items:flex-start;gap:10px;padding:9px 0;border-bottom:1px solid #161b27}
-.ci-row:last-child{border-bottom:none}
-.ci-left{min-width:160px;flex-shrink:0}
-.ci-key a{color:#60a5fa;text-decoration:none;font-weight:700;font-size:.75rem}
-.ci-key a:hover{text-decoration:underline}
-.ci-meta{font-size:.63rem;color:#475569;margin-top:3px}
-.ci-summary{color:#94a3b8;font-size:.76rem;flex:1}
-.new-tag{background:rgba(248,113,113,.15);color:#f87171;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:700}
-/* Status badges (exposure panel) */
-.st-open    {background:rgba(248,113,113,.18);color:#f87171;padding:2px 6px;border-radius:5px;font-size:.67rem;font-weight:700}
-.st-needinfo{background:rgba(251,191,36,.15);color:#fbbf24;padding:2px 6px;border-radius:5px;font-size:.67rem;font-weight:700}
-.st-deferred{background:rgba(100,116,139,.18);color:#94a3b8;padding:2px 6px;border-radius:5px;font-size:.67rem;font-weight:600}
-.st-generic {background:rgba(100,116,139,.15);color:#94a3b8;padding:2px 6px;border-radius:5px;font-size:.67rem;font-weight:600}
-/* Activity log */
 .at{width:100%;border-collapse:collapse}
 .at thead th{font-size:.69rem;text-transform:uppercase;letter-spacing:.7px;color:#64748b;font-weight:700;padding:0 8px 10px 0;text-align:left;border-bottom:1px solid #2d3348}
 .at tbody tr{border-bottom:1px solid #161b27}
@@ -315,12 +247,6 @@ h1 span{color:#f87171}
 .si-cl{background:rgba(100,116,139,.15);color:#94a3b8;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:600;white-space:nowrap}
 .si-it{background:rgba(251,191,36,.12);color:#fbbf24;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:600;white-space:nowrap}
 .si-vr{background:rgba(129,140,248,.12);color:#818cf8;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:600;white-space:nowrap}
-/* Exposure inline badges */
-.exp-crit{background:#7f1d1d;color:#fca5a5;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:700;white-space:nowrap}
-.exp-high{background:#78350f;color:#fcd34d;padding:1px 5px;border-radius:4px;font-size:.62rem;font-weight:700;white-space:nowrap}
-/* Row-level exposure highlight */
-.exp-critical-row td{border-left:3px solid #f87171;padding-left:8px}
-.exp-high-row td{border-left:3px solid #fbbf24;padding-left:8px}
 .dp{color:#f87171;font-weight:700}.dn2{color:#34d399;font-weight:700}.dz{color:#334155}
 .on{color:#818cf8;font-weight:700}
 .wr td{background:rgba(255,255,255,.018)}
@@ -357,23 +283,6 @@ footer{text-align:center;color:#334155;font-size:.74rem;margin-top:40px}
 </div>
 
 <div class="panel">
-<div class="pt">Critical &amp; High Exposure Bugs
-<span style="color:#334155;font-weight:400;text-transform:none;letter-spacing:0;font-size:.74rem;">&nbsp;&mdash; open bugs (issuetype=Bug) with highest customer impact</span></div>
-<div class="ci-grid">
-<div>
-<div class="ci-col-title" style="color:#f87171;">&#128308; 1-Critical &nbsp;<span style="color:#334155;font-weight:400;" id="critCount"></span></div>
-<div id="critList"></div>
-</div>
-<div>
-<div class="ci-col-title" style="color:#fcd34d;">&#9888; 2-High &nbsp;<span style="color:#334155;font-weight:400;" id="highCount"></span></div>
-<div id="highList"></div>
-</div>
-</div>
-<p class="dn" style="margin-top:14px;">Filter: <code style="color:#475569;">issuetype=Bug AND "Exposure" in ("1-Critical","2-High") AND status not in (Implemented,"In testing",Verified,Closed)</code>
-&bull; Issues marked <span class="new-tag">New</span> were filed in this tracking period.</p>
-</div>
-
-<div class="panel">
 <div class="pt">Open Issue Count Trend (end-of-day)</div>
 <div class="cw"><svg id="tc" viewBox="0 0 1200 240" preserveAspectRatio="xMidYMid meet" style="width:100%;height:240px;"></svg></div>
 <div class="leg"><div class="li"><div class="ld" style="background:#818cf8;"></div>Total open issues (end of day)</div></div>
@@ -387,7 +296,7 @@ footer{text-align:center;color:#334155;font-size:.74rem;margin-top:40px}
 <div class="li"><div class="ld" style="background:#f87171;"></div>New issues filed</div>
 <div class="li"><div class="ld" style="background:#34d399;"></div>Resolved (Implemented / Closed / In Testing / Verified)</div>
 </div>
-<p class="dn">Weekends shown at reduced opacity. Rows with a coloured left border contain High (amber) or Critical (red) exposure bugs.</p>
+<p class="dn">Weekends shown at reduced opacity.</p>
 </div>
 
 <div class="panel">
@@ -400,68 +309,27 @@ footer{text-align:center;color:#334155;font-size:.74rem;margin-top:40px}
 </tr></thead>
 <tbody id="log"></tbody>
 </table>
-<p class="dn">Open EOD = open count at end of day (back-calculated). JQL: <code style="color:#475569;">status changed to (Implemented, "In testing", Verified, Closed) after "{{START_DATE}}"</code></p>
+<p class="dn">Open EOD = open count at end of day (back-calculated). JQL: <code style="color:#475569;">status changed to (Implemented, "In testing", Verified, Closed) after "PERIOD_START"</code></p>
 </div>
 </div>
 <footer>Generated {{GEN_DATE}} &bull; Source: JIRA REST API &bull; project {{PROJECT}} &middot; component "{{COMPONENT}}"</footer>
 
 <script>
 const JIRA = "{{JIRA_URL}}/browse/";
-const days         = {{DAYS_JSON}};
+const days        = {{DAYS_JSON}};
 const daily_new    = {{DAILY_NEW_JSON}};
 const daily_closed = {{DAILY_CLOSED_JSON}};
 const open_total   = {{OPEN_TOTAL_JSON}};
 const newDetails   = {{NEW_DETAILS_JSON}};
 const closedDetails = {{CLOSED_DETAILS_JSON}};
-// Exposure map: {key -> exposure_value} for all issues tracked in this period
-const EXPOSURE_MAP = {{EXPOSURE_MAP_JSON}};
-// Open Bug tickets with Critical/High exposure
-const HIGH_EXP_BUGS = {{HIGH_EXP_BUGS_JSON}};
-// Issue keys filed in this period
-const PERIOD_KEYS = new Set({{PERIOD_KEYS_JSON}});
 
-// ── Exposure panel ────────────────────────────────────────────────────────────
-(function(){
-  const STATUS_CLS = {'Open':'st-open','Need Info':'st-needinfo','Deferred':'st-deferred'};
-  function stBadge(s){ return `<span class="${STATUS_CLS[s]||'st-generic'}">${s}</span>`; }
-
-  function row(item){
-    const isNew = PERIOD_KEYS.has(item.key);
-    return `<div class="ci-row">
-      <div class="ci-left">
-        <div style="display:flex;align-items:center;gap:5px;flex-wrap:wrap;">
-          <span class="ci-key"><a href="${JIRA}${item.key}" target="_blank">${item.key}</a></span>
-          ${stBadge(item.status)}${isNew?'<span class="new-tag">New</span>':''}
-        </div>
-        <div class="ci-meta">Filed ${item.created} &middot; upd ${item.updated}</div>
-      </div>
-      <span class="ci-summary">${item.s}</span>
-    </div>`;
-  }
-
-  const crit = HIGH_EXP_BUGS.filter(i=>i.exp==='1-Critical');
-  const high = HIGH_EXP_BUGS.filter(i=>i.exp==='2-High');
-  document.getElementById('critCount').textContent = `${crit.length} open`;
-  document.getElementById('highCount').textContent = `${high.length} open`;
-  document.getElementById('critList').innerHTML = crit.length
-    ? crit.map(row).join('')
-    : '<p style="color:#334155;font-size:.8rem;padding:12px 0;">No open 1-Critical bugs.</p>';
-  document.getElementById('highList').innerHTML = high.length
-    ? high.map(row).join('')
-    : '<p style="color:#334155;font-size:.8rem;padding:12px 0;">No open 2-High bugs.</p>';
-})();
-
-// ── Chart helpers ─────────────────────────────────────────────────────────────
 const N=days.length,PL=52,PR=16,PT=18,PB=36,W=1200;
 const cW=(W-PL-PR)/N;
 function isWE(d){const x=new Date(d+'T12:00:00Z');return x.getUTCDay()===0||x.getUTCDay()===6;}
 function dl(d){const[,m,dy]=d.split('-');return `${parseInt(m)}/${parseInt(dy)}`;}
-function xs(i){return PL+i*cW+cW/2;}
-function xc(i){return PL+i*cW;}
+function xs(i){return PL+i*cW+cW/2;}function xc(i){return PL+i*cW;}
 const DOW=['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-const intv=Math.max(1,Math.round(N/12));
 
-// ── Trend chart ───────────────────────────────────────────────────────────────
 (function(){
   const H=240,cH=H-PT-PB;
   const minV=Math.min(...open_total)-4,maxV=Math.max(...open_total)+6;
@@ -487,11 +355,11 @@ const intv=Math.max(1,Math.round(N/12));
   h+=`<text x="${xs(N-1)}" y="${ys(open_total[N-1])-9}" text-anchor="middle" fill="#f87171" font-size="10" font-weight="700">${open_total[N-1]}</text>`;
   h+=`<text x="${xs(pi)}" y="${ys(open_total[pi])-10}" text-anchor="middle" fill="#fbbf24" font-size="10" font-weight="600">&#9650; Peak ${open_total[pi]}</text>`;
   h+=`<line x1="${PL}" y1="${bY}" x2="${W-PR}" y2="${bY}" stroke="#2d3348" stroke-width="1"/>`;
+  const intv=Math.max(1,Math.round(N/12));
   days.forEach((d,i)=>{if(i%intv===0||i===N-1) h+=`<text x="${xs(i)}" y="${H-7}" text-anchor="middle" fill="${i===N-1?'#f87171':'#334155'}" font-size="9">${dl(d)}</text>`;});
   document.getElementById('tc').innerHTML=h;
 })();
 
-// ── Activity chart ────────────────────────────────────────────────────────────
 (function(){
   const H=200,cH=H-PT-PB;
   const maxA=Math.max(...daily_new,...daily_closed,1);
@@ -510,47 +378,31 @@ const intv=Math.max(1,Math.round(N/12));
     if(cv>0){const bh=bY-ya(cv);h+=`<rect x="${cx+1}" y="${ya(cv)}" width="${bW}" height="${bh}" fill="#34d399" opacity="${wk}" rx="2"/>`;if(cv>=4)h+=`<text x="${cx+bW/2+1}" y="${ya(cv)-3}" text-anchor="middle" fill="#34d399" font-size="9" font-weight="600">${cv}</text>`;}
   });
   h+=`<line x1="${PL}" y1="${bY}" x2="${W-PR}" y2="${bY}" stroke="#2d3348" stroke-width="1"/>`;
+  const intv=Math.max(1,Math.round(N/12));
   days.forEach((d,i)=>{if(i%intv===0||i===N-1) h+=`<text x="${xs(i)}" y="${H-7}" text-anchor="middle" fill="#334155" font-size="9">${dl(d)}</text>`;});
   document.getElementById('ac').innerHTML=h;
 })();
 
-// ── Activity log ──────────────────────────────────────────────────────────────
 (function(){
   const tb=document.getElementById('log');
   const stM={'Implemented':'si-impl','Closed':'si-cl','In Testing':'si-it','Verified':'si-vr'};
   const stL={'Implemented':'Impl','Closed':'Closed','In Testing':'InTest','Verified':'Verified'};
   const pM={'P1':'p1','P2':'p2','P3':'p3','P4':'p3'};
-
-  function expBadge(key){
-    const e=EXPOSURE_MAP[key]||'';
-    if(e==='1-Critical') return '<span class="exp-crit">&#128308;&thinsp;Critical</span> ';
-    if(e==='2-High')     return '<span class="exp-high">&#9888;&thinsp;High</span> ';
-    return '';
-  }
-
-  function issRows(arr){
+  function rows(arr){
     if(!arr||!arr.length) return '<span style="color:#1e293b;">&mdash;</span>';
     return '<div class="il">'+arr.map(it=>{
-      const pb=it.p&&pM[it.p]?`<span class="${pM[it.p]}">${it.p}</span> `:'';
-      const sb=it.st?`<span class="${stM[it.st]||'si-cl'}">${stL[it.st]||it.st}</span> `:'';
-      return `<div class="ip"><span class="ik"><a href="${JIRA}${it.key}" target="_blank">${it.key}</a></span> ${pb}${expBadge(it.key)}${sb}<span class="is">${it.s}</span></div>`;
+      const pb=it.p&&pM[it.p]?`<span class="${pM[it.p]}">${it.p}</span>`:'';
+      const sb=it.st?`<span class="${stM[it.st]||'si-cl'}">${stL[it.st]||it.st}</span>`:'';
+      return `<div class="ip"><span class="ik"><a href="${JIRA}${it.key}" target="_blank">${it.key}</a></span>${pb}${sb}<span class="is">${it.s}</span></div>`;
     }).join('')+'</div>';
   }
-
-  function rowExpCls(d){
-    const keys=[...(newDetails[d]||[]),...(closedDetails[d]||[])].map(x=>x.key);
-    if(keys.some(k=>EXPOSURE_MAP[k]==='1-Critical')) return 'exp-critical-row';
-    if(keys.some(k=>EXPOSURE_MAP[k]==='2-High'))     return 'exp-high-row';
-    return '';
-  }
-
   days.forEach((d,i)=>{
     const nv=daily_new[i],cv=daily_closed[i];
-    if(!nv&&!cv) return;
+    if(!nv&&!cv)return;
     const delta=nv-cv,dO=new Date(d+'T12:00:00Z'),dow=DOW[dO.getUTCDay()];
-    const cls=[isWE(d)?'wr':'',rowExpCls(d)].filter(Boolean).join(' ');
+    const cls=isWE(d)?'wr':'';
     const dh=delta>0?`<span class="dp">+${delta}</span>`:delta<0?`<span class="dn2">${delta}</span>`:`<span class="dz">&plusmn;0</span>`;
-    tb.innerHTML+=`<tr class="${cls}"><td class="dc">${d.slice(5)}<span class="dw">${dow}${isWE(d)?' &middot; wknd':''}</span></td><td style="color:#f87171;font-weight:700;">${nv||'&mdash;'}</td><td style="color:#34d399;font-weight:700;">${cv||'&mdash;'}</td><td>${dh}</td><td><span class="on">${open_total[i]}</span></td><td>${issRows(newDetails[d])}</td><td>${issRows(closedDetails[d])}</td></tr>`;
+    tb.innerHTML+=`<tr class="${cls}"><td class="dc">${d.slice(5)}<span class="dw">${dow}${isWE(d)?' &middot; wknd':''}</span></td><td style="color:#f87171;font-weight:700;">${nv||'&mdash;'}</td><td style="color:#34d399;font-weight:700;">${cv||'&mdash;'}</td><td>${dh}</td><td><span class="on">${open_total[i]}</span></td><td>${rows(newDetails[d])}</td><td>${rows(closedDetails[d])}</td></tr>`;
   });
 })();
 </script>
@@ -584,8 +436,8 @@ def main():
         print("ERROR: JIRA PAT required. Set JIRA_PAT env var or use --pat.", file=sys.stderr)
         sys.exit(1)
 
-    jira_url  = args.jira_url
-    project   = args.project
+    jira_url = args.jira_url
+    project  = args.project
     component = args.component
 
     # Date range
@@ -600,7 +452,7 @@ def main():
     n_days = (datetime.strptime(end_date, "%Y-%m-%d") - datetime.strptime(start_date, "%Y-%m-%d")).days + 1
     print(f"Period: {start_date} → {end_date} ({n_days} days)")
 
-    # Fetch daily new/resolved data
+    # Fetch data
     new_issues, closed_issues = fetch_data(pat, project, component, start_date, end_date, jira_url)
     days, new_by_day, closed_by_day, status_counts = build_daily(
         new_issues, closed_issues, start_date, end_date
@@ -619,28 +471,20 @@ def main():
         days, new_by_day, closed_by_day, current_open
     )
 
-    # Collect all period issue keys for exposure lookup
-    all_period_keys = list({
-        iss["key"] for iss in new_issues + closed_issues
-    })
-    print(f"Fetching exposure field for {len(all_period_keys)} period issues...")
-    exposure_map = fetch_exposure_map(pat, all_period_keys, jira_url)
-
-    # Fetch open high-exposure bugs
-    print("Fetching Critical/High exposure open bugs...")
-    high_exp_bugs = fetch_high_exposure_bugs(pat, project, component, jira_url)
-    print(f"  → {len(high_exp_bugs)} bugs (1-Critical: {sum(1 for b in high_exp_bugs if b['exposure']=='1-Critical')}, 2-High: {sum(1 for b in high_exp_bugs if b['exposure']=='2-High')})")
-
     total_new    = sum(daily_new)
     total_closed = sum(daily_closed)
     start_open   = open_total[0]
     net_change   = current_open - start_open
 
+    # Print summary
     print(f"\nSummary:")
     print(f"  New:          {total_new}")
     print(f"  Resolved:     {total_closed}")
     print(f"  Net change:   {net_change:+d}")
+    print(f"  Start open:   {start_open}")
+    print(f"  Current open: {current_open}")
     print(f"  Peak open:    {max(open_total)} ({days[open_total.index(max(open_total))]})")
+    print(f"  Status breakdown: {dict(status_counts)}")
 
     # Build JSON for template
     new_details_json = {
@@ -651,13 +495,6 @@ def main():
         d: [{"key": i["key"], "s": i["s"], "p": i["p"], "st": i["st"]} for i in items]
         for d, items in closed_by_day.items()
     }
-    # Rename 'summary' key to 's' for the template
-    high_exp_for_js = [
-        {"key": b["key"], "s": b["summary"], "status": b["status"],
-         "exp": b["exposure"], "created": b["created"], "updated": b["updated"]}
-        for b in high_exp_bugs
-    ]
-    period_keys_list = list({iss["key"] for iss in new_issues})
 
     html = render_html(HTML_TEMPLATE, {
         "TITLE":            f"CPU Plugin Issue Tracker · {start_date} – {end_date}",
@@ -684,9 +521,6 @@ def main():
         "OPEN_TOTAL_JSON":  json.dumps(open_total),
         "NEW_DETAILS_JSON": json.dumps(new_details_json),
         "CLOSED_DETAILS_JSON": json.dumps(closed_details_json),
-        "EXPOSURE_MAP_JSON": json.dumps(exposure_map),
-        "HIGH_EXP_BUGS_JSON": json.dumps(high_exp_for_js),
-        "PERIOD_KEYS_JSON": json.dumps(period_keys_list),
     })
 
     out = Path(args.output)

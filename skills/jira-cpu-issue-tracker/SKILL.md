@@ -116,30 +116,6 @@ The JIRA REST API does not expose historical open counts. Instead:
 
 > **Tip**: For the most accurate baseline, run the script on the same day as your JIRA filter query. The confirmed current total drives the entire back-calculation.
 
-## Critical & High Exposure Bug Panel
-
-The dashboard includes a dedicated panel showing open **Bug tickets** with Critical or High customer exposure. This uses a separate JIRA query:
-
-```
-issuetype = Bug
-AND project = CVS AND component = "IE CPU Plugin"
-AND status not in (Implemented, "In testing", Verified, Closed)
-AND "Exposure" in ("1-Critical", "2-High")
-ORDER BY EXPOSURE ASC, updated DESC
-```
-
-**Why `issuetype=Bug` matters:** The JIRA Exposure field applies to all issue types. Without the Bug filter, Epics and Stories with high exposure appear alongside actual defects, inflating the count with backlog work items rather than customer-impacting bugs.
-
-**Exposure field:** `customfield_13805` — values are `1-Critical`, `2-High`, `3-Medium`, `4-Low` (or empty). Ordered `1-Critical` (worst) → `4-Low`.
-
-**Status labels shown:** Each bug displays its current JIRA status badge:
-- `Open` — actively being triaged
-- `Need Info` — waiting on customer/reporter
-- `Deferred` — acknowledged but deprioritized
-- Other statuses rendered generically
-
-**Exposure inline badges** in the activity log mark individual issues with `⚠ High` or `🔴 Critical` so high-exposure activity is visible at a glance. Rows containing high-exposure issues also receive a coloured left border (amber = High, red = Critical).
-
 ## "Resolved" Definition
 
 An issue counts as **resolved on a given day** if its `updated` timestamp falls on that day **and** it has transitioned to one of:
